@@ -25,7 +25,7 @@ jobs:
       - name: Checkout repos
         uses: actions/checkout@v2
         with:
-          ref: master
+          ref: ${{ github.event.pull_request.head.ref }}
 
       # Setup R (pretty explicit!)
       - name: Setup R
