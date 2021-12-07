@@ -137,7 +137,7 @@ ggplot(pA, aes(x = n_colonies_prev, y = prev, group = prev,height = prob)) + #ge
 pA_interp <- pA %>%
   group_by(prev) %>%
   arrange(prev, n_colonies_prev) %>%
-  complete(n_colonies_prev = seq(0, 1, len = 10001)) %>%
+  complete(n_colonies_prev = seq(0, 1, len = 1001)) %>%
   mutate(prob_all_t = na.approx(prob)) %>% # Need to divide by new total - no longer just a bar at say n_colonies = 0.1, but now have a bit of that at 0.09, 0.95 etc
   mutate(total = sum(prob_all_t), 
          prob_all = prob_all_t/total) %>% 

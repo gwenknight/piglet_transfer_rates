@@ -76,9 +76,11 @@ theta_fit = c(0.0886372585286972,
 names(theta_fit) <- names
 
 ## All same
-gain_all <- 0.005
-gamma_all <- 0.003
-fitness_all <- 0.0005
+#para <- 0.1215405 0.04811499 0.04409806 0.09738901
+gain_all <- 0.1215405
+gamma_all <- 0.04811499
+fitness_all <- 0.04409806
+
 
 theta = c(# gain
   mu2 = gain_all, mu5 = gain_all,
@@ -89,12 +91,22 @@ theta = c(# gain
   # fitness
   f2 = fitness_all,f5 = fitness_all,
   f6 = fitness_all,f7 = fitness_all,f8 = fitness_all,f10 = fitness_all,
-  grow = 0.05)
+  grow = 0.09738901)
+
+
+theta_fit1 <- c(0.0902391342190606,0.0955462697865904,0.106214814356656,0.0320580334507821,0.053400872560795,
+                0.036871987212835,0.0145792645731623,0.0113884777998453,0.0502397535174183,0.011160982802245,
+                0.0267229541391116,0.0585937074381367,0.0179654291647543,0.00740612615527331,0.00206276494039848,
+                0.0149934380222259,0.0117866755813373,0.0108041440759182,0.0999725982538078)
+names(theta_fit1)<-names(theta)
 
 tsteps = 384
 
+### theta same for all 
+theta = c(mu = 0.08, gamma = 0.09, f = 0.003, grow = 0.1)
+
 ## Run for these parameters
-out <- run_sim(tsteps, theta_fit)
+out <- run_sim(tsteps, theta)
 max(out$P_all$time)
 out$error
 
@@ -105,6 +117,10 @@ if(max(out$P_all$time)==tsteps){ # if get to end
   #### element prevalence from model 
   model_outputp <- out$prev_predict %>% filter(name %in% c("phi6","phi2","p1","p2","p3","p4"))
   model_outputp$prev <- round(model_outputp$prev,2)
+  
+  ## check likelihood works
+  #mock_data <- read_csv("data/mock_perfect_data.csv")[,-1]
+  #model_outputp <- mock_data
   
   # Check what distribution of n_colonies at this prevalence in the model pig
   distributs <- left_join(model_outputp, dist_like, by = "prev") %>% select(parent, time, name, prob_all, n_colonies_prev)
@@ -130,7 +146,7 @@ if(max(out$P_all$time)==tsteps){ # if get to end
   #                as.data.frame() %>% mutate(likelihood = weight * val_in) %>% summarise(sum(log(likelihood)))) # log likelhood for totals
 }else{compare_dat <- as.numeric(-Inf)}
 # return log likelihood
-compare_dat
+compare_dat #### - 718 for mock data
 likelihood_lookup_elements
 likelihood_lookup_totals
 

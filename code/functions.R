@@ -971,23 +971,40 @@ run_sim <- function(tsteps, parameters){
   # growth_in = fitness cost
   # grate_in = underlying growth rate
   
+  # If have rates for all 10 elements
+  if(length(parameters) == 31){
   mu_in <- as.numeric(parameters[1:10])
   gamma_in <- as.numeric(parameters[11:20] )
   growth_in <- as.numeric(parameters[21:30])
   grate_in <- as.numeric(parameters[31])
+  }
   
   # If just looking at the elements that move
-  if(length(parameters) < 31){
+  if(length(parameters) < 31 && length(parameters) > 7){
     mu_in <- as.numeric(c(0,parameters["mu2"],0,0,parameters["mu5"],parameters["mu6"],parameters["mu7"],parameters["mu8"],0,parameters["mu10"]))
     gamma_in <- as.numeric(c(0,parameters["gamma2"],0,0,parameters["gamma5"],parameters["gamma6"],parameters["gamma7"],parameters["gamma8"],0,parameters["gamma10"]))
     growth_in <- as.numeric(c(0,parameters["f2"],0,0,parameters["f5"],parameters["f6"],parameters["f7"],parameters["f8"],0,parameters["f10"]))
     grate_in <- as.numeric(parameters["grow"])
   }
   
-  if(length(mu_in) < 10){stop("Not enough gain parameters")}
-  if(length(gamma_in) < 10){stop("Not enough loss parameters")}
-  if(length(growth_in) < 10){stop("Not enough fitness parameters")}
-  if(sum(growth_in) > 1){stop("Fitness cost too large")}
+  # If fixed input - same rates for all elements
+  if(length(parameters) == 4){
+    mu_in <- as.numeric(c(0,parameters["mu"],0,0,parameters["mu"],parameters["mu"],parameters["mu"],parameters["mu"],0,parameters["mu"]))
+    gamma_in <- as.numeric(c(0,parameters["gamma"],0,0,parameters["gamma"],parameters["gamma"],parameters["gamma"],parameters["gamma"],0,parameters["gamma"]))
+    growth_in <- as.numeric(c(0,parameters["f"],0,0,parameters["f"],parameters["f"],parameters["f"],parameters["f"],0,parameters["f"]))
+    grate_in <- as.numeric(parameters["grow"])
+  }
+  
+  # If fixed input - same rates for phage vs plasmids
+  if(length(parameters) == 7){
+    #c("SCCmec","phi6","SaPI","Tn916","phi2","p1","p2","p3","phi3","p4")
+    mu_in <- as.numeric(c(0,parameters["mu_phage"],0,0,parameters["mu_phage"],parameters["mu_plasmid"],parameters["mu_plasmid"],parameters["mu_plasmid"],0,parameters["mu_plasmid"]))
+    gamma_in <- as.numeric(c(0,parameters["gamma_phage"],0,0,parameters["gamma_phage"],parameters["gamma_plasmid"],parameters["gamma_plasmid"],parameters["gamma_plasmid"],0,parameters["gamma_plasmid"]))
+    growth_in <- as.numeric(c(0,parameters["f_phage"],0,0,parameters["f_phage"],parameters["f_plasmid"],parameters["f_plasmid"],parameters["f_plasmid"],0,parameters["f_plasmid"]))
+    grate_in <- as.numeric(parameters["grow"])
+  }
+  
+
   
   # carrying capacity
   K = 0.8 * 10^7
@@ -1004,6 +1021,12 @@ run_sim <- function(tsteps, parameters){
   ## State matrix 
   Pinit$freq <- 7 * 10^2 # start with all at P1
   Qinit$freq <- 7 * 10^2 # start with all at Q1
+  
+  if(length(mu_in) < 10){stop("Not enough gain parameters")}
+  if(length(gamma_in) < 10){stop("Not enough loss parameters")}
+  if(length(growth_in) < 10){stop("Not enough fitness parameters")}
+  if(sum(growth_in) > 1){stop("Fitness cost too large", return(list(P_all = Pinit, Q_all = Qinit, error = "", 
+                                                                    prev_predict = c(0), totl_predict = c(0))))}
   
   # At start
   P = Pinit
@@ -1227,10 +1250,7 @@ run_sim_old <- function(tsteps, parameters){
     grate_in <- as.numeric(parameters["grow"])
   }
   
-  if(length(mu_in) < 10){stop("Not enough gain parameters")}
-  if(length(gamma_in) < 10){stop("Not enough loss parameters")}
-  if(length(growth_in) < 10){stop("Not enough fitness parameters")}
-  if(sum(growth_in) > 1){stop("Fitness cost too large")}
+ 
   
   # carrying capacity
   K = 0.8 * 10^7
@@ -1247,6 +1267,12 @@ run_sim_old <- function(tsteps, parameters){
   ## State matrix 
   Pinit$freq <- 7 * 10^2 # start with all at P1
   Qinit$freq <- 7 * 10^2 # start with all at Q1
+  
+  if(length(mu_in) < 10){stop("Not enough gain parameters")}
+  if(length(gamma_in) < 10){stop("Not enough loss parameters")}
+  if(length(growth_in) < 10){stop("Not enough fitness parameters")}
+  if(sum(growth_in) > 1){stop("Fitness cost too large", return(list(P_all = Pinit, Q_all = Qinit, error = "error", 
+                                                                    prev_predict = c(0), totl_predict = c(0))))}
   
   # At start
   P = Pinit
