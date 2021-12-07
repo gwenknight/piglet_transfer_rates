@@ -1447,335 +1447,41 @@ run_sim_old <- function(tsteps, parameters){
               prev_predict = prev_predict, totl_predict = totl_predict))
 }
 
-
-### OLD 
-# run_sim <- function(tsteps, parameters){
-#   # mu_in = gain rates
-#   # gamma_in = loss rates
-#   # growth_in = fitness cost
-#   # grate_in = underlying growth rate
-#   
-#   mu_in <- parameters[1:10]
-#   gamma_in <- parameters[11:20] 
-#   growth_in <- parameters[21:30]
-#   grate_in <- parameters[31]
-#   
-#   # If just looking at the elements that move
-#   if(length(parameters) < 31){
-#     mu_in <- as.numeric(c(0,parameters["mu2"],0,0,parameters["mu5"],parameters["mu6"],parameters["mu7"],parameters["mu8"],0,parameters["mu10"]))
-#     gamma_in <- as.numeric(c(0,parameters["gamma2"],0,0,parameters["gamma5"],parameters["gamma6"],parameters["gamma7"],parameters["gamma8"],0,parameters["gamma10"]))
-#     growth_in <- as.numeric(c(0,parameters["f2"],0,0,parameters["f5"],parameters["f6"],parameters["f7"],parameters["f8"],0,parameters["f10"]))
-#     grate_in <- as.numeric(parameters["grow"])
-#   }
-#   
-#   if(length(mu_in) < 10){stop("Not enough gain parameters")}
-#   if(length(gamma_in) < 10){stop("Not enough loss parameters")}
-#   if(length(growth_in) < 10){stop("Not enough fitness parameters")}
-#   
-#   # carrying capacity
-#   K = 1 * 10^7
-#   
-#   ## initial conditions
-#   #c("SCCmec","phi6","SaPI","Tn916","phi2","p1","p2","p3","phi3","p4")
-#   Pinit = t(c(0,1,0,0,1,1,1,1,0,0))
-#   Qinit = t(c(0,0,0,0,0,0,0,0,0,1))
-#   Pinit <- as.data.frame(Pinit)
-#   colnames(Pinit) = c("v1","v2","v3","v4","v5","v6","v7","v8","v9","v10")
-#   Qinit <- as.data.frame(Qinit)
-#   colnames(Qinit) = c("v1","v2","v3","v4","v5","v6","v7","v8","v9","v10")
-#   
-#   ## State matrix 
-#   Pinit$freq <- 10^2 # start with all at P1
-#   Qinit$freq <- 10^2 # start with all at Q1
-#   
-#   # At start
-#   P = Pinit
-#   Q = Qinit
-#   P_all <- c()
-#   Q_all <- c()
-#   
-#   for(iit in 1:tsteps){
-#     #print(iit)
-#     
-#     ####### Events
-#     nbugs = sum(P$freq) + sum(Q$freq)  # total bugs
-#     
-#     ######################## (1) gain 
-#     #print("gain")
-#     
-#     #p11 <- gain2(P,P, mu_in)
-#     #p12 <- gain2(P,Q, mu_in)
-#     
-#     #q11 <- gain2(Q,Q, mu_in)
-#     #q12 <- gain2(Q,P, mu_in)
-#     
-#     ## Remove from main count
-#     #for(ir in 1:length(p11[,1])){P[p11[ir,"j"],"freq"] <- P[p11[ir,"j"],"freq"] - p11[ir,"freq"]}
-#     #for(ir in 1:length(p12[,1])){P[p12[ir,"j"],"freq"] <- P[p12[ir,"j"],"freq"] - p12[ir,"freq"]}
-#     
-#     #for(ir in 1:length(q12[,1])){Q[q12[ir,"j"],"freq"] <- Q[q12[ir,"j"],"freq"] - q12[ir,"freq"]}
-#     #for(ir in 1:length(q12[,1])){Q[q12[ir,"j"],"freq"] <- Q[q12[ir,"j"],"freq"] - q12[ir,"freq"]}
-#     
-#     new_after_gain <- gain_mge(P,Q,mu_in)
-#     P <- new_after_gain$Pnew
-#     Q <- new_after_gain$Qnew
-#     
-#     ######################## (2) loss
-#     #print("loss")
-#     
-#     # lp2 <- loss(P, gamma_in)
-#     # lq2 <- loss(Q, gamma_in)
-#     # 
-#     # # # Remove from main count
-#     # for(ir in 1:length(lp2[,1])){P[lp2[ir,"j"],"freq"] <- P[lp2[ir,"j"],"freq"] - lp2[ir,"freq"]}
-#     # for(ir in 1:length(lq2[,1])){Q[lq2[ir,"j"],"freq"] <- Q[lq2[ir,"j"],"freq"] - lq2[ir,"freq"]}
-#     # 
-#     # # # Remove any profiles which no longer have any bugs with this profile
-#     # P <- P[which(P$freq>0),]
-#     # Q <- Q[which(Q$freq>0),]
-#     
-#     new_after_loss <- loss_mge(P,Q,gamma_in)
-#     Ploss <- new_after_loss$Pnew
-#     Qloss <- new_after_loss$Qnew
-#     
-#     # Pull together - may be multiple rows with same profiles
-#     P <- plyr::count(Ploss, vars = c("v1","v2","v3","v4","v5","v6","v7","v8","v9","v10"),wt_var = "freq")
-#     Q <- plyr::count(Qloss, vars = c("v1","v2","v3","v4","v5","v6","v7","v8","v9","v10"),wt_var = "freq")
-#     
-#     ######################### (3) Growth & Death
-#     #print("growth")
-#     
-#     gp3 <- c(); gq3 <- c();
-#     # Add in fitness column for each profile (fitness = min(1,sum(P[j,1:10] * growth_in)))
-#     # Each can have a fitness cost: assume additive up to totally unfit = 1
-#     P <- P %>% rowwise() %>% mutate(fitness = sum(v1*growth[1] + v2*growth[2] + v3*growth[3] + 
-#                                                     v4*growth[4] + v5*growth[5] + v6*growth[6] + 
-#                                                     v7*growth[7] + v8*growth[8] + v9*growth[9] + v10*growth[10]))
-#     Q <- Q %>% rowwise() %>% mutate(fitness = sum(v1*growth[1] + v2*growth[2] + v3*growth[3] + 
-#                                                     v4*growth[4] + v5*growth[5] + v6*growth[6] + 
-#                                                     v7*growth[7] + v8*growth[8] + v9*growth[9] + v10*growth[10]))
-#     
-#     # Add in probability survive
-#     # OLD: prob_survive = 0.5 * (1 + (1 - fitness) * grate_in * (1 - nbugs / K)) # E(Xt+1) = 2 x E(Xt) + 0.55. 2 x grow. Then 90% die for grate of 0.1. This gives p = 0.55
-#     cps = (1-nbugs/K)
-#     P <- P %>% rowwise() %>% mutate(prob_survive = 0.5 * (1 + (1-fitness) * grate_in * cps)) %>% ungroup()
-#     Q <- Q %>% rowwise() %>% mutate(prob_survive = 0.5 * (1 + (1-fitness) * grate_in * cps)) %>% ungroup()
-#     # Correct list / tibble making: stops loss working
-#     P <- as.data.frame(P)
-#     Q <- as.data.frame(Q)
-#     for(j in 1:dim(P)[1]){ # for each profile in P
-#       
-#       ## How many will survive? they double (hence the 2 x P[j,"freq"]) then a proportion die so that on average
-#       # P * grate * fitness survive: have to have prob_survive < 1 to work. 
-#       if(as.numeric(P[j,"freq"]*P[j,"prob_survive"]) < 6){
-#         gpnew = sum(rbinom(n = 2 * as.numeric(P[j,"freq"]), size = 1, as.numeric(P[j,"prob_survive"]))) # for each bacteria, probability that transfer happens    
-#       } else {
-#         gpnew = round(rnorm(n = 1, mean = 2 * as.numeric(P[j,"freq"] * P[j,"prob_survive"]),
-#                             sd = sqrt(2 * as.numeric(P[j,"freq"]) * as.numeric(P[j,"prob_survive"]) * (1 - as.numeric(P[j,"prob_survive"])))),0)  
-#       }
-#       gp3 <- c(gp3, gpnew)
-#     }
-#     
-#     for(j in 1:dim(Q)[1]){ # for each profile in Q
-#       
-#       ## How many will survive? they double (hence the 2 x Q[j,"freq"]) then a proportion die so that on average
-#       # Q * grate * fitness survive: have to have prob_survive < 1 to work. 
-#       if(as.numeric(Q[j,"freq"]*Q[j,"prob_survive"] )< 6){
-#         gqnew = sum(rbinom(n = 2 * as.numeric(Q[j,"freq"]), size = 1, as.numeric(Q[j,"prob_survive"]))) # for each bacteria, probability that transfer happens    
-#       } else {
-#         gqnew = round(rnorm(n = 1, mean = 2 * as.numeric(Q[j,"freq"] * Q[j,"prob_survive"]),
-#                             sd = sqrt(2 * as.numeric(Q[j,"freq"] * Q[j,"prob_survive"]) * (1 - as.numeric(Q[j,"prob_survive"])))),0)  
-#       }
-#       gq3 <- c(gq3, gqnew)
-#     }
-#     
-#     ######################### Totals 
-#     P$freq <- gp3
-#     Q$freq <- gq3
-#     
-#     # # # Remove any profiles which no longer have any bugs with this profile
-#     P <- P[which(P$freq>0),]
-#     Q <- Q[which(Q$freq>0),]
-#     
-#     #    P <- rbind(P, p11[,1:11], p12[,1:11], lp2[,1:11]) %>% plyr::count(.,vars = c("v1","v2","v3","v4","v5","v6","v7","v8","v9","v10"),wt_var = "freq")
-#     #    Q <- rbind(Q, q11[,1:11], q12[,1:11], lq2[,1:11]) %>% plyr::count(.,vars = c("v1","v2","v3","v4","v5","v6","v7","v8","v9","v10"),wt_var = "freq")
-#     
-#     #########################  Store
-#     P_new <- P
-#     P_new$time <- iit
-#     Q_new <- Q
-#     Q_new$time <- iit
-#     
-#     P_all <- rbind(P_all, P_new)
-#     Q_all <- rbind(Q_all, Q_new)
-#     
-#     ### CHECKS
-#     error <- 0
-#     # (1) check grate not too quick: if 107 before 3 days or after 5 days then too slow
-#     total_bugs = sum(P$freq) + sum(Q$freq)
-#     if(total_bugs > 0.9 * K && iit < 72){error <- 11; break;} #print("Growth rate too fast"); 
-#     if(total_bugs < 0.9 * K && iit > 210){error <- 12;  break} #print("Growth rate too slow"); 
-#     
-#     # # (2) check not too many profiles: if more 100 stop!
-#     #print(dim(P))
-#     #print(dim(Q))
-#     #if(dim(P)[1] > 100){error <- 21; print("P: too many profiles"); break}
-#     #if(dim(Q)[1] > 100){error <- 22; print("Q: too many profiles"); break}
-#     
-#     # (3) if more than 15 at 5% then stop 
-#     if(dim(P)[1]>15){ # if more than 15 at 5% in general then check next calcs
-#       prop <- 100 * P$freq / sum(P$freq)
-#       n_15 = length(which(prop > 5))
-#       if(n_15 > 15){error <- 31;  break}#print("P: too many over 5%");
-#     }
-#     if(dim(Q)[1]>15){ # if more than 15 at 5% in general then check next calcs
-#       qprop <- 100 * Q$freq / sum(Q$freq)
-#       n_15 = length(which(qprop > 5))
-#       if(n_15 > 15){error <- 32;  break} #print("Q: too many over 5%");
-#     }
-#     # (4) if too few after 24hrs than stop 
-#     if(iit > 24){
-#       if(dim(P)[1]< 3){error <- 41;  break} # if fewer than 3 profiles at 2 days then stop
-#       if(dim(Q)[1]< 3){error <- 42; break} # if fewer than 3 profiles at 2 days then stop
-#     }
-#     
-#     # (5) Need both populations to grow evenly "colonising equally well" after 2 days
-#     if(iit > 48){
-#       if(sum(P$freq)/total_bugs < 0.4){error <- 51;  break} #print("P: less than 40%");
-#       if(sum(P$freq)/total_bugs > 0.6){error <- 52;  break} #print("P: greater than 40%");
-#     }
-#     
-#   }
-#   
-#   # Label profiles
-#   P_all$label <- getLabels(P_all[,c("v1","v2","v3","v4","v5","v6","v7","v8","v9","v10")])
-#   Q_all$label <- getLabels(Q_all[,c("v1","v2","v3","v4","v5","v6","v7","v8","v9","v10")])
-#   
-#   ## Convert to prevalence over time
-#   if(iit == tsteps){ # if reach end timepoint without error
-#     colnames(P_all) <- c("SCCmec","phi6","SaPI","Tn916","phi2","p1","p2","p3","phi3","p4","freq","fitness","prob_survive","time","label")
-#     colnames(Q_all) <- c("SCCmec","phi6","SaPI","Tn916","phi2","p1","p2","p3","phi3","p4","freq","fitness","prob_survive","time","label")
-#     pnew <- P_all %>% pivot_longer(cols = c("SCCmec":"p4")) %>% 
-#       filter(time %in% c(4,48,72,288,384)) %>% group_by(time) %>% 
-#       mutate(total = sum(freq)/10) %>% group_by(time, name) %>% # /10 for total as 10 elements
-#       mutate(nbugs_with = value * freq) %>% 
-#       summarise(nbugs_with_total = sum(nbugs_with), total = min(total), # min here but could be max or anything - just need to move total into summary
-#                 prev = ifelse(nbugs_with_total == 0, 0, nbugs_with_total / total),.groups = "drop") %>%
-#       select(time,name,prev) %>% mutate(parent = 1)
-#     
-#     qnew <-  Q_all %>% pivot_longer(cols = c("SCCmec":"p4")) %>% 
-#       filter(time %in% c(4,48,72,288,384)) %>% group_by(time) %>% 
-#       mutate(total = sum(freq)/10) %>% group_by(time, name) %>% # /10 for total as 10 elements
-#       mutate(nbugs_with = value * freq) %>% 
-#       summarise(nbugs_with_total = sum(nbugs_with), total = min(total), # min here but could be max or anything - just need to move total into summary
-#                 prev = ifelse(nbugs_with_total == 0, 0, nbugs_with_total / total),.groups = "drop") %>%
-#       select(time,name,prev) %>% mutate(parent = 2)
-#     
-#     # Totals 
-#     ptotals <- P_all %>% select(time,freq) %>%
-#       filter(time %in% c(4,48,72,288,384)) %>% group_by(time) %>% 
-#       summarise(total = sum(freq),.groups = "drop") %>% mutate(parent = 1)
-#     qtotals <- Q_all %>% select(time,freq) %>%
-#       filter(time %in% c(4,48,72,288,384)) %>% group_by(time) %>% 
-#       summarise(total = sum(freq),.groups = "drop") %>% mutate(parent = 2)
-#     
-#     # to match data
-#     prev_predict <- rbind(pnew,qnew)
-#     totl_predict <- rbind(ptotals, qtotals)
-#   } else {prev_predict <- c(); totl_predict <- c()}
-#   # Output
-#   return(list(P_all = P_all, Q_all = Q_all, error = error, 
-#               prev_predict = prev_predict, totl_predict = totl_predict))
-# }
-
-
-
-# # stopped rbind... makes slower!
-gain2 <- function(receiver, giver, mu_in){
-  # receiver: bugs that are getting MGE
-  # giver: bugs that are giving MGE
-  # mu_in: rate of movement for each of the 10 MGE in this system
+### Calculate log posterior from model at theta parameter values
+run_sim_logPosterior <- function(theta){
+  tsteps = 384
   
-  ## Run through each row in receiver
-  # Parallel
-  #p11 <- foreach (j=1:dim(receiver)[1], .combine=rbind) %dopar% { # for each profile in receiver
+  ## Run for these parameters
+  out <- run_sim(tsteps, theta)
+  max(out$P_all$time)
   
-  # Total number of bugs
-  nbugs = sum(receiver$freq) + sum(giver$freq)  # total bugs
-  
-  # not parallel
-  p11 <- matrix(0,10000,14)
-  row_p11 <- 1
-  for(j in 1:dim(receiver)[1]){
+  if(max(out$P_all$time)==tsteps){ # if get to end 
+    #### element prevalence from model 
+    model_outputp <- out$prev_predict %>% filter(name %in% c("phi6","phi2","p1","p2","p3","p4"))
+    model_outputp$prev <- round(model_outputp$prev,2)
     
-    pk <- matrix(0,10000,14)
-    row_pk <- 1
-    for(k in 1:dim(giver)[1]){ # for each "other profile" in giver
-      
-      nh = round(receiver[j,"freq"]*giver[k,"freq"] / nbugs,0) # mass action: probability bump into this bug
-      if(nh == 0){break} # if not bugs then have to stop
-      
-      rph <- matrix(0,nh,10)
-      
-      ## If X ~ B(n, p) and if np or nq > 5, then X is approximately N(np, npq)
-      if(nh * max(mu_in) < 5){
-        # for each element - does transfer happen between this and the profiles?
-        for(ii in 1:10){
-          if(giver[k,ii] - receiver[j,ii] > 0){ # so transfer can happen from profile k to profile j (doesn't matter if j = k, receiver = giver as this will be 0)
-            rph[,ii] <- rbinom(n = nh, size = 1, mu_in[ii]) # for each bacteria, probability that transfer happens
-          }
-        }
-      }else{
-        # for each element - does transfer happen between this and the profiles?
-        for(ii in 1:10){
-          if(giver[k,ii] - receiver[j,ii] > 0){ # so transfer can happen from profile k to profile j (doesn't matter if j = k, receiver = giver as this will be 0)
-            nmovements = round(rnorm(n = 1, mean = nh*mu_in[ii],sd = sqrt(nh * mu_in[ii] * (1 - mu_in[ii]))),0)
-            if(nmovements > 0){
-              rph[runif(nmovements, 1, nh), ii] <- 1 # assign randomly to each of the nh bugs
-            }
-          }
-        }
-      }
-      
-      ## rph has all the profiles / moved elements
-      if(sum(rph)>0){ # only do if there were some transfers
-        rph <- as.data.frame(rph)
-        colnames(rph) = c("v1","v2","v3","v4","v5","v6","v7","v8","v9","v10") # 10 elements
-        
-        # Resulting new profiles and their count
-        rph <- rph %>% remove_empty("rows") # remove no transfer rows
-        
-        p1new <- plyr::count(rph, vars = c("v1","v2","v3","v4","v5","v6","v7","v8","v9","v10")) #%>%
-        #mutate(Total = select(., v1:v10) %>% rowSums()) %>%  # count how many
-        #filter(Total>0) %>% select(-Total) 
-        
-        # Have to add to existing profile
-        if(dim(p1new)[1]>0){
-          for(i in 1:dim(p1new)[1]){
-            p1new[i,c("v1","v2","v3","v4","v5","v6","v7","v8","v9","v10")] <- 
-              receiver[j,c("v1","v2","v3","v4","v5","v6","v7","v8","v9","v10")] + 
-              p1new[i,c("v1","v2","v3","v4","v5","v6","v7","v8","v9","v10")]
-          }
-          p1new$j <- j # label which profile became this new one
-          p1new$k <- k
-          p1new$ii <- ii
-          pk[(row_pk):(row_pk-1+dim(p1new)[1]),] = as.matrix(p1new)
-          row_pk <- row_pk+dim(p1new)[1] + 1
-        }}
-    }
+    # Check what distribution of n_colonies at this prevalence in the model pig
+    distributs <- left_join(model_outputp, dist_like, by = "prev") %>% select(parent, time, name, prob_all, n_colonies_prev)
+    # e.g. to check 
+    #distributs %>% filter(name == "p1", parent == 1, n_colonies_prev == 0.9900) %>% summarise(sum(prob_all))
     
-    #pk # return pk from the parallel for each profile in receiver
-    pk <- pk[-which(rowSums(pk)==0),]
-    if(length(dim(pk)[1])>0){
-      if(dim(pk)[1]!=0){
-        p11[(row_p11):(row_p11 -1 + dim(pk)[1]),] <- pk
-        row_p11 <- row_p11 + dim(pk)[1] + 1}
-    }
-  }
-  
-  colnames(p11) <- c("v1","v2","v3","v4","v5","v6","v7","v8","v9","v10","freq","j","k","ii")
-  return(p11)
+    # lookup the probability from this distribution for the data
+    likelihood_lookup_elements <- left_join(data_6, distributs, by = c("parent","time","name","n_colonies_prev")) %>% summarise(sum(log(prob_all)))
+    
+    #### total bugs output from model 
+    model_outputt <- out$totl_predict
+    
+    likelihood_lookup_totals <- left_join(model_outputt, totals, by = c("time", "parent")) %>% rowwise() %>% mutate(val_in = as.numeric(between(total,min,max))) %>%
+      as.data.frame() %>% mutate(likelihood = weight * val_in) %>% summarise(sum(log(likelihood)))
+    
+    #### Compare to data 
+    compare_dat <- likelihood_lookup_elements + likelihood_lookup_totals
+    
+  }else{compare_dat <- as.numeric(-Inf)}
+  # return log likelihood
+  as.numeric(compare_dat)
 }
+
 
 ### Labelling function
 getLabels <- function(df) {

@@ -20,20 +20,25 @@ totals <- read.csv("data/totals_bug.csv")[,-1] %>% select(time,value, parent, li
 source("code/functions.R")
 source("code/mcmcmh.r") # had to change line172
 
-## All same
-init.theta = c(mu = 0.15, gamma = 0.06, f = 0.03, grow = 0.0978)
+## Phage same, plasmids same 
+init.theta = c(mu_phage = 0.15, gamma_phage = 0.06, f_phage = 0.03, 
+               mu_plasmid = 0.15, gamma_plasmid = 0.06, f_plasmid = 0.03,
+               grow = 0.0978)
+
 lower.p <- init.theta
 lower.p[] <- 0
 
 mcmc.epi3_79 <- mcmcMH(target = run_sim_logPosterior,
-                    limits=list(lower = lower.p),
-                    init.theta = c(mu = 0.15, gamma = 0.06, f = 0.03, grow = 0.0978),
-                    proposal.sd = c(rep(0.005,3), 0.005),
-                    n.iterations = 2,
-                    adapt.size.start = 100,
-                    adapt.shape.start = 500,
-                    adapt.size.cooling=0.999, 
-                    verbose = TRUE)
+                       limits=list(lower = lower.p),
+                       init.theta = c(mu_phage = 0.15, gamma_phage = 0.06, f_phage = 0.03, 
+                                      mu_plasmid = 0.15, gamma_plasmid = 0.06, f_plasmid = 0.03,
+                                      grow = 0.0978),
+                       proposal.sd = c(rep(0.005,8)),
+                       n.iterations = 2,
+                       adapt.size.start = 100,
+                       adapt.shape.start = 500,
+                       adapt.size.cooling=0.999, 
+                       verbose = TRUE)
 
 # Save output
 filename = gsub(c(" "), "_", format(as.POSIXct(Sys.time()), tz = "Europe/London", usetz = TRUE))
