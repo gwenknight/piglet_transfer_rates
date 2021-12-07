@@ -1,17 +1,58 @@
-name: GitHub Actions Demo
-on: [push]
+
+# Name of the workflow
+name: A GitHub action
+
+# Controls when the workflow will run
+on:
+  workflow_dispatch: #this creates a manual trigger to start the action
+#  push:
+#    branches: [ master ] #this means the action is triggered everytime something is pushed to the master branch
+#  schedule:
+#    - cron:  '30 10 * * *'  #this means the action is triggered everyday at 10.30am UTC time
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+# Important: ubuntu-latest is not set up properly for R, so use macOS
 jobs:
-  Explore-GitHub-Actions:
-    runs-on: ubuntu-latest
+  script-run1:
+    runs-on: macos-latest # Runs the job on MacOS. Other option: ubuntu-latest (see README for pros/cons)
     steps:
-      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
-      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
-      - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
-      - name: Check out repository code
+      # Manually installing Homebrew to overcome some version issues
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+        
+      # Load the repository  
+      - name: Checkout repos
         uses: actions/checkout@v2
-      - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
-      - run: echo "🖥️ The workflow is now ready to test your code on the runner."
-      - name: List files in the repository
+        with:
+          ref: master
+
+      # Setup R (pretty explicit!)
+      - name: Setup R
+        uses: r-lib/actions/setup-r@master
+
+      # Here, you can list all the R packages you want to install
+      - name: Install dependencies
         run: |
-          ls ${{ github.workspace }}
-      - run: echo "🍏 This job's status is ${{ job.status }}."
+          Sys.setenv(R_REMOTES_NO_ERRORS_FROM_WARNINGS = "true")
+          options(install.packages.check.source = "no")
+          pkgs <- c("ggplot2", "here","tmvtnorm","tidyverse","nlme")
+          install.packages(pkgs, repos = "https://cloud.r-project.org/")
+        shell: Rscript {0}
+ 
+      # Run the analysis script
+      - name: Run R script
+        run: |
+          source(here::here("code", "mcmc_fit_all_same.R"))
+        shell: Rscript {0}
+
+      # Save the results by pushing them back to the repository
+      - name: Commit and push files
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git pull
+          git add Results
+          git commit -m "New results mcmc fit all same"
+          git push
+

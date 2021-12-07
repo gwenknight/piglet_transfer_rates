@@ -16,6 +16,8 @@
 
 # Output files from R CMD check
 /*.Rcheck/
+/plots
+/fits
 
 # RStudio files
 .Rproj.user/
