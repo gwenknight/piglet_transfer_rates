@@ -389,10 +389,6 @@ gain_mge_all_new <- function(prnt1, prnt2, mu_in){
   total_bugs = sum(prnt$freq)
   nbugs_without_orig <- total_bugs - nbugs_with_orig
   
-  # Total number of bugs with each MGE
-  nbugs_with = nbugs_with_orig[m]
-  nbugs_without =  total_bugs - nbugs_with
-  
   # Number transfer: mass action assumption
   nh <- nbugs_with_orig * nbugs_without_orig / total_bugs #nbugs_with * (nbugs_without / total_bugs)
   
