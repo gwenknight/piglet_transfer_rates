@@ -36,7 +36,7 @@ jobs:
         run: |
           Sys.setenv(R_REMOTES_NO_ERRORS_FROM_WARNINGS = "true")
           options(install.packages.check.source = "no")
-          pkgs <- c("ggplot2", "here","tmvtnorm","tidyverse","nlme","coda")
+          pkgs <- c("ggplot2", "here","tmvtnorm","tidyverse","nlme","coda","plyr")
           install.packages(pkgs, repos = "https://cloud.r-project.org/")
         shell: Rscript {0}
  
