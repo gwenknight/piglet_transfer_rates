@@ -2,7 +2,7 @@
 library(tmvtnorm)
 library(tidyverse)
 library(here)
-library('coda')
+library(coda)
 
 
 ### Data 
@@ -81,9 +81,9 @@ write.csv(mcmc.epi3_79$acceptance.rate, here::here("fits/all_same/",paste0(filen
 write.csv(mcmc.epi3_79$covmat.empirical, here::here("fits/all_same/",paste0(filename,"_","covmat",".csv")))
 
 
-# Look at output
-mcmc.trace <- mcmc(mcmc.epi3_79$trace)
-summary(mcmc.trace)
-acceptanceRate <- 1 - rejectionRate(mcmc.trace)
-acceptanceRate
-plot(mcmc.trace)
+# # Look at output
+# mcmc.trace <- mcmc(mcmc.epi3_79$trace)
+# summary(mcmc.trace)
+# acceptanceRate <- 1 - rejectionRate(mcmc.trace)
+# acceptanceRate
+# plot(mcmc.trace)
