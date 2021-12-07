@@ -131,7 +131,7 @@ jobs:
       # Run the analysis script
       - name: Run R script
         run: |
-          source(here::here("code", "mcmc_fit_all.R"))
+          source(here::here("code", "mcmc_fit_everything.R"))
         shell: Rscript {0}
 
       # Save the results by pushing them back to the repository
@@ -140,7 +140,7 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git pull
-          git add fits/all
-          git commit -m "New results mcmc all"
+          git add fits/everything
+          git commit -m "New results mcmc everything"
           git push
 
