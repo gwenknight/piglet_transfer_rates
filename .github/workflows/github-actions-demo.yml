@@ -1,3 +1,4 @@
+
 # Name of the workflow
 name: A GitHub action
 
@@ -54,3 +55,4 @@ jobs:
           git add Results
           git commit -m "New results mcmc fit all same"
           git push
+
