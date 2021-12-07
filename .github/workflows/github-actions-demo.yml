@@ -52,7 +52,7 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git pull
-          git add Results
+          git add fits/all_same
           git commit -m "New results mcmc fit all same"
           git push
 
