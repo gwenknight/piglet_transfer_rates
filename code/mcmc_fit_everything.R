@@ -21,20 +21,24 @@ source("code/functions.R")
 source("code/mcmcmh.r") # had to change line172
 
 ## Phage same, plasmids same 
-init.theta = c(mu_phage = 0.15, gamma_phage = 0.06, f_phage = 0.03, 
-               mu_plasmid = 0.15, gamma_plasmid = 0.06, f_plasmid = 0.03,
-               grow = 0.0978)
+init.theta = c(mu2 = 0.09, mu5 = 0.096, mu6 = 0.106, mu7 = 0.032, mu8 = 0.053, 
+             mu10 = 0.037, gamma2 = 0.015, gamma5 = 0.011, gamma6 = 0.05, 
+             gamma7 = 0.011, gamma8 = 0.027, gamma10 = 0.059, f2 = 0.018, 
+             f5 = 0.007, f6 = 0.002, f7 = 0.015, f8 = 0.012, f10 = 0.011, 
+             grow = 0.1)
 
 lower.p <- init.theta
 lower.p[] <- 0
 
 mcmc.epi3_79 <- mcmcMH(target = run_sim_logPosterior,
                        limits=list(lower = lower.p),
-                       init.theta = c(mu_phage = 0.15, gamma_phage = 0.06, f_phage = 0.03, 
-                                      mu_plasmid = 0.15, gamma_plasmid = 0.06, f_plasmid = 0.03,
-                                      grow = 0.0978),
-                       proposal.sd = c(rep(0.005,8)),
-                       n.iterations = 5000,
+                       init.theta = c(mu2 = 0.09, mu5 = 0.096, mu6 = 0.106, mu7 = 0.032, mu8 = 0.053, 
+                                      mu10 = 0.037, gamma2 = 0.015, gamma5 = 0.011, gamma6 = 0.05, 
+                                      gamma7 = 0.011, gamma8 = 0.027, gamma10 = 0.059, f2 = 0.018, 
+                                      f5 = 0.007, f6 = 0.002, f7 = 0.015, f8 = 0.012, f10 = 0.011, 
+                                      grow = 0.1),
+                       proposal.sd = c(rep(0.005,19)),
+                       n.iterations = 2,
                        adapt.size.start = 100,
                        adapt.shape.start = 500,
                        adapt.size.cooling=0.999, 
@@ -44,9 +48,9 @@ mcmc.epi3_79 <- mcmcMH(target = run_sim_logPosterior,
 filename = gsub(c(" "), "_", format(as.POSIXct(Sys.time()), tz = "Europe/London", usetz = TRUE))
 filename = gsub(":", "-", filename)
 
-write.csv(mcmc.epi3_79$trace, here::here("fits/phage_plasmid/",paste0(filename,"_","trace",".csv")))
-write.csv(mcmc.epi3_79$acceptance.rate, here::here("fits/phage_plasmid/",paste0(filename,"_","acceptance_rates",".csv")))
-write.csv(mcmc.epi3_79$covmat.empirical, here::here("fits/phage_plasmid/",paste0(filename,"_","covmat",".csv")))
+write.csv(mcmc.epi3_79$trace, here::here("fits/everything/",paste0(filename,"_","trace",".csv")))
+write.csv(mcmc.epi3_79$acceptance.rate, here::here("fits/everything/",paste0(filename,"_","acceptance_rates",".csv")))
+write.csv(mcmc.epi3_79$covmat.empirical, here::here("fits/everything/",paste0(filename,"_","covmat",".csv")))
 
 
 # # Look at output
