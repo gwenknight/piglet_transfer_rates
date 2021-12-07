@@ -1,1 +1,99 @@
+# Name of the workflow
+name: A GitHub action
 
+# Controls when the workflow will run
+on:
+  workflow_dispatch: #this creates a manual trigger to start the action
+#  push:
+#    branches: [ master ] #this means the action is triggered everytime something is pushed to the master branch
+#  schedule:
+#    - cron:  '30 10 * * *'  #this means the action is triggered everyday at 10.30am UTC time
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+# Important: ubuntu-latest is not set up properly for R, so use macOS
+jobs:
+  script-run1:
+    runs-on: macos-latest # Runs the job on MacOS. Other option: ubuntu-latest (see README for pros/cons)
+    steps:
+      # Manually installing Homebrew to overcome some version issues
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+        
+      # Load the repository  
+      - name: Checkout repos
+        uses: actions/checkout@v2
+        with:
+          ref: master
+
+      # Setup R (pretty explicit!)
+      - name: Setup R
+        uses: r-lib/actions/setup-r@master
+
+      # Here, you can list all the R packages you want to install
+      - name: Install dependencies
+        run: |
+          Sys.setenv(R_REMOTES_NO_ERRORS_FROM_WARNINGS = "true")
+          options(install.packages.check.source = "no")
+          pkgs <- c("ggplot2", "here")
+          install.packages(pkgs, repos = "https://cloud.r-project.org/")
+        shell: Rscript {0}
+ 
+      # Run the analysis script
+      - name: Run R script
+        run: |
+          source(here::here("Analysis", "analysis_script.R"))
+        shell: Rscript {0}
+
+      # Save the results by pushing them back to the repository
+      - name: Commit and push files
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git pull
+          git add Results
+          git commit -m "New results job 1"
+          git push
+# A 2nd job, which will run in parallel of the 1st job
+  script-run2:
+    runs-on: macos-latest # Runs the job on MacOS. Other option: ubuntu-latest (see README for pros/cons)
+    steps:
+      # Manually installing Homebrew to overcome some version issues
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+        
+      # Load the repository  
+      - name: Checkout repos
+        uses: actions/checkout@v2
+        with:
+          ref: master
+
+      # Setup R (pretty explicit!)
+      - name: Setup R
+        uses: r-lib/actions/setup-r@master
+
+      # Here, you can list all the R packages you want to install
+      - name: Install dependencies
+        run: |
+          Sys.setenv(R_REMOTES_NO_ERRORS_FROM_WARNINGS = "true")
+          options(install.packages.check.source = "no")
+          pkgs <- c("animation", "here")
+          install.packages(pkgs, repos = "https://cloud.r-project.org/")
+        shell: Rscript {0}
+ 
+      # Run the analysis script
+      - name: Run R script
+        run: |
+          source(here::here("Analysis", "slow_analysis_script.R"))
+        shell: Rscript {0}
+
+      # Save the results by pushing them back to the repository
+      - name: Commit and push files
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git pull
+          git add Results
+          git commit -m "New results job 2"
+          git push
