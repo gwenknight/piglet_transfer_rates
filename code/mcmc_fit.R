@@ -15,16 +15,32 @@ totals <- read.csv("totals_bug.csv")[,-1] %>% select(time,value, parent, lim) %>
 
 # Just focus on 6 elements that actually move 
 #c("phi6","phi2","p1","p2","p3","p4")
+# theta = c(# gain
+#   mu2 = 0.008,mu5 = 0.008,
+#   mu6 = 0.0079,mu7 = 0.043,mu8 = 0.000195,mu10 = 0.0008,
+#   # loss
+#   gamma2 = 0.004,gamma5 = 0.0009,
+#   gamma6 = 0.049,gamma7 = 0.089,gamma8 = 0.65,gamma10 = 0.4,
+#   # fitness
+#   f2 = 0.2,f5 = 0.06,
+#   f6 = 0.48,f7 = 0.06,f8 = 0.03,f10 = 0.38,
+#   grow = 0.102)
+
+## All same
+gain_all <- 0.08
+gamma_all <- 0.009
+fitness_all <- 0.01
+
 theta = c(# gain
-  mu2 = 0.008,mu5 = 0.008,
-  mu6 = 0.0079,mu7 = 0.043,mu8 = 0.000195,mu10 = 0.0008,
+  mu2 = gain_all, mu5 = gain_all,
+  mu6 = gain_all,mu7 = gain_all,mu8 = gain_all,mu10 = gain_all,
   # loss
-  gamma2 = 0.004,gamma5 = 0.0009,
-  gamma6 = 0.049,gamma7 = 0.089,gamma8 = 0.65,gamma10 = 0.4,
+  gamma2 = gamma_all,gamma5 = gamma_all,
+  gamma6 = gamma_all,gamma7 = gamma_all,gamma8 = gamma_all,gamma10 = gamma_all,
   # fitness
-  f2 = 0.2,f5 = 0.06,
-  f6 = 0.48,f7 = 0.06,f8 = 0.03,f10 = 0.38,
-  grow = 0.102)
+  f2 = fitness_all,f5 = fitness_all,
+  f6 = fitness_all,f7 = fitness_all,f8 = fitness_all,f10 = fitness_all,
+  grow = 0.1)
 
 
 ### Calculate log posterior from model at theta parameter values
@@ -65,38 +81,44 @@ run_sim_logPosterior <- function(theta){
 ### FROM https://rdrr.io/github/sbfnk/fitR/src/R/mcmc.r
 library(fitR)
 source("code/mcmcmh.r") # had to change line172
+## All same
+gain_all <- 0.08
+gamma_all <- 0.009
+fitness_all <- 0.01
+
+
+
 init.theta = c(# gain
-  mu2 = 0.008,mu5 = 0.008,
-  mu6 = 0.006,mu7 = 0.008,mu8 = 0.000195,mu10 = 0.0008,
+  mu2 = gain_all, mu5 = gain_all,
+  mu6 = gain_all,mu7 = gain_all,mu8 = gain_all,mu10 = gain_all,
   # loss
-  gamma2 = 0.00000004,gamma5 = 0.00000009,
-  gamma6 = 0.0000039,gamma7 = 0.0000019,gamma8 = 0.000003,gamma10 = 0.000000023,
+  gamma2 = gamma_all,gamma5 = gamma_all,
+  gamma6 = gamma_all,gamma7 = gamma_all,gamma8 = gamma_all,gamma10 = gamma_all,
   # fitness
-  f2 = 0.002,f5 = 0.006,
-  f6 = 0.000068,f7 = 0.15,f8 = 0.005,f10 = 0.000001,
-  grow = 0.142)
+  f2 = fitness_all,f5 = fitness_all,
+  f6 = fitness_all,f7 = fitness_all,f8 = fitness_all,f10 = fitness_all,
+  grow = 0.1)
 lower.p <- init.theta
 lower.p[] <- 0
 
 mcmc.epi3_79 <- mcmcMH(target = run_sim_logPosterior,
                     limits=list(lower = lower.p),
                     init.theta = c(# gain
-                      mu2 = 0.008,mu5 = 0.008,
-                      mu6 = 0.006,mu7 = 0.008,mu8 = 0.000195,mu10 = 0.0008,
+                      mu2 = 0.08, mu5 = 0.08,
+                      mu6 = 0.08,mu7 = 0.08,mu8 = 0.08,mu10 = 0.08,
                       # loss
-                      gamma2 = 0.00000004,gamma5 = 0.00000009,
-                      gamma6 = 0.0000039,gamma7 = 0.0000019,gamma8 = 0.000003,gamma10 = 0.000000023,
+                      gamma2 = 0.009,gamma5 = 0.009,
+                      gamma6 = 0.009,gamma7 = 0.009,gamma8 = 0.009,gamma10 = 0.009,
                       # fitness
-                      f2 = 0.002,f5 = 0.006,
-                      f6 = 0.000068,f7 = 0.15,f8 = 0.005,f10 = 0.000001,
-                      grow = 0.142),
+                      f2 = 0.01,f5 = 0.01,
+                      f6 = 0.01,f7 = 0.01,f8 = 0.01,f10 = 0.01,
+                      grow = 0.1),
                     proposal.sd = c(rep(0.005,12), rep(0.001,6),0.005),
                     n.iterations = 5000,
                     adapt.size.start = 100,
                     adapt.shape.start = 500,
-                    adapt.size.cooling=0.999)
-
-
+                    adapt.size.cooling=0.999, 
+                    verbose = TRUE)
 
 parameter
 

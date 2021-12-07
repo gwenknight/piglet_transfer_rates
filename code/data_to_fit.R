@@ -1,9 +1,9 @@
 ###### Convert data to fitting data
 
 ### read in distributions from back_calc_prev.R
-seen_predicted <- read.csv("seen_predicted.csv")[,-1]
+seen_predicted <- read.csv("data/seen_predicted.csv")[,-1]
 ### read in data on elements
-pigg_elements <- read.csv("pigg_elements.csv")[,-1]
+pigg_elements <- read.csv("data/pigg_elements.csv")[,-1]
 
 ### Filter distributions 
 conversion_data = seen_predicted %>% #filter(prob > 0.05) %>% # Want to only have >1% probability
@@ -40,7 +40,7 @@ elemtn <- element_data_prob_mean %>% select(parent_strain, time, name, mean) %>%
   rename(n_colonies_prev = mean, parent = parent_strain) %>%
   filter(time > 0)
 
-write.csv(elemtn,"data_to_fit.csv")
+write.csv(elemtn,"data/data_to_fit.csv")
 
 
 

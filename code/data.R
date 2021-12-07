@@ -322,7 +322,7 @@ ggplot(pigg_elements %>% filter(name %in% c("phi6","phi2","p1","p2","p3","p4")),
   facet_wrap(name~parent_strain, ncol = 2) 
 ggsave("plots/mge_over_time_moving.pdf")
 
-write.csv(pigg_elements, "pigg_elements.csv")
+write.csv(pigg_elements, "data/pigg_elements.csv")
 
 
 
@@ -351,5 +351,5 @@ ggplot(totals_err, aes(x=time, group = parent)) +
   scale_fill_discrete("Parent")
 ggsave("plots/totals_area_to_hit.pdf")
 
-write.csv(totals, "totals_bug.csv")
+write.csv(totals, "data/totals_bug.csv")
 

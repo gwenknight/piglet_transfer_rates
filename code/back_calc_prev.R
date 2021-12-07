@@ -146,7 +146,7 @@ pA_interp <- pA %>%
 ## check prob = 1
 pA_interp %>% filter(prev == 0.53) %>% summarise(sum(prob_all))
 
-write.csv(pA_interp, "seen_predicted.csv")
+write.csv(pA_interp, "data/seen_predicted.csv")
 
 
 
