@@ -1,3 +1,4 @@
+
 # Name of the workflow
 name: A GitHub action
 
@@ -24,7 +25,7 @@ jobs:
       - name: Checkout repos
         uses: actions/checkout@v2
         with:
-          ref: master
+          ref: ${{ github.event.pull_request.head.ref }}
 
       # Setup R (pretty explicit!)
       - name: Setup R
@@ -54,3 +55,4 @@ jobs:
           git add Results
           git commit -m "New results mcmc fit all same"
           git push
+
