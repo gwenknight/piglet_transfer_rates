@@ -493,16 +493,21 @@ gain_mge_sample <- function(prnt1, prnt2, mu_in){
   d2 <- dim(prnt2)[1]
   
   # total 
-  prnt <- rbind(prnt1, prnt2)
+  prnt <- as.data.frame(matrix(0,d1+d2, dim(prnt1)[2]))
+  colnames(prnt) <- colnames(prnt1)
+  prnt[1:d1,]<-prnt1
+  prnt[(d1+1):(d1+d2),] <- prnt2
+  
+  #prnt <- rbind(prnt1, prnt2)
   
   # New matrices
-  nprnt1 <-  matrix(0, nrow = 15000, ncol = dim(prnt1)[2])
+  nprnt1 <-  as.data.frame(matrix(0, nrow = 15000, ncol = dim(prnt1)[2]))
   colnames(nprnt1) <- colnames(prnt1)
-  nprnt2 <-  matrix(0, nrow = 15000, ncol = dim(prnt1)[2])
+  nprnt2 <-  as.data.frame(matrix(0, nrow = 15000, ncol = dim(prnt1)[2]))
   colnames(nprnt2) <- colnames(prnt1)
   
-  nprnt1 <- rbind(prnt1, nprnt1) # if allocate get list conversion
-  nprnt2 <- rbind(prnt2, nprnt2)
+  nprnt1[1:d1,] <- prnt1 # if allocate get list conversion
+  nprnt2[1:d2,] <- prnt2
   
   row_for_new_1 <- d1 + 1
   row_for_new_2 <- d2 + 1 
@@ -1089,16 +1094,21 @@ loss_mge_sample<- function(prnt1, prnt2, gamma_in){
   d2 <- dim(prnt2)[1]
   
   # total 
-  prnt <- rbind(prnt1, prnt2)
+  prnt <- as.data.frame(matrix(0,d1+d2, dim(prnt1)[2]))
+  colnames(prnt) <- colnames(prnt1)
+  prnt[1:d1,]<-prnt1
+  prnt[(d1+1):(d1+d2),] <- prnt2
+  
+  #prnt <- rbind(prnt1, prnt2)
   
   # New matrices
-  nprnt1 <-  matrix(0, nrow = 15000, ncol = dim(prnt1)[2])
+  nprnt1 <-  as.data.frame(matrix(0, nrow = 15000, ncol = dim(prnt1)[2]))
   colnames(nprnt1) <- colnames(prnt1)
-  nprnt2 <-  matrix(0, nrow = 15000, ncol = dim(prnt1)[2])
+  nprnt2 <-  as.data.frame(matrix(0, nrow = 15000, ncol = dim(prnt1)[2]))
   colnames(nprnt2) <- colnames(prnt1)
   
-  nprnt1 <- rbind(prnt1, nprnt1) # if allocate get list conversion
-  nprnt2 <- rbind(prnt2, nprnt2)
+  nprnt1[1:d1,] <- prnt1 # if allocate get list conversion
+  nprnt2[1:d2,] <- prnt2
   
   row_for_new_1 <- d1 + 1
   row_for_new_2 <- d2 + 1 
