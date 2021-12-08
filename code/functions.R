@@ -568,7 +568,7 @@ gain_mge_sample <- function(prnt1, prnt2, mu_in){
         # Make new profiles
         profiles <- prnt[as.numeric(names(table(ss))),]
         profiles$freq <- as.numeric(table(ss))
-        profiles[,m] <- 0
+        profiles[,m] <- 1
         
         # Store 
         p1 <- which(as.numeric(names(table(ss))) <= d1)
@@ -576,18 +576,21 @@ gain_mge_sample <- function(prnt1, prnt2, mu_in){
         if(length(p1) > 0){nprnt1[row_for_new_1:(row_for_new_1+length(p1)-1),] <- profiles[p1,]
         nprnt1[as.numeric(names(table(ss)))[p1],"freq"] <- nprnt1[as.numeric(names(table(ss)))[p1],"freq"] - profiles[p1,"freq"]}
         if(length(p2) > 0){nprnt2[row_for_new_2:(row_for_new_2+length(p2)-1),] <- profiles[p2,]
-        nprnt2[as.numeric(names(table(ss)))[p2],"freq"] <- nprnt2[as.numeric(names(table(ss)))[p2],"freq"] - profiles[p2,"freq"]}
+        nprnt2[(as.numeric(names(table(ss)))[p2]-d1),"freq"] <- nprnt2[(as.numeric(names(table(ss)))[p2]-d1),"freq"] - profiles[p2,"freq"]}
         
         row_for_new_1 <- row_for_new_1 + 1000
         row_for_new_2 <- row_for_new_2 + 1000
+        
+        #print(c(sum(nprnt1$freq), sum(nprnt2$freq), sum(prnt1$freq),sum(prnt2$freq),
+        #        sum(profiles[p1,"freq"]), sum(profiles[p2,"freq"]), n_transfer[m], sum(profiles[p1,"freq"]) + sum(profiles[p2,"freq"])))
       }
     }
+    #print(c(sum(nprnt1$freq), sum(nprnt2$freq), sum(prnt1$freq),sum(prnt2$freq)))
   }
   
   # remove any zero profiles
   nprnt1 <- nprnt1[which(nprnt1$freq>0),]
   nprnt2 <- nprnt2[which(nprnt2$freq>0),]
-  
   return(list(Pnew = nprnt1, Qnew = nprnt2))
 }
 
@@ -1164,7 +1167,7 @@ loss_mge_sample<- function(prnt1, prnt2, gamma_in){
         if(length(p1) > 0){nprnt1[row_for_new_1:(row_for_new_1+length(p1)-1),] <- profiles[p1,]
         nprnt1[as.numeric(names(table(ss)))[p1],"freq"] <- nprnt1[as.numeric(names(table(ss)))[p1],"freq"] - profiles[p1,"freq"]}
         if(length(p2) > 0){nprnt2[row_for_new_2:(row_for_new_2+length(p2)-1),] <- profiles[p2,]
-        nprnt2[as.numeric(names(table(ss)))[p2],"freq"] <- nprnt2[as.numeric(names(table(ss)))[p2],"freq"] - profiles[p2,"freq"]}
+        nprnt2[(as.numeric(names(table(ss)))[p2]-d1),"freq"] <- nprnt2[(as.numeric(names(table(ss)))[p2]-d1),"freq"] - profiles[p2,"freq"]}
         
         row_for_new_1 <- row_for_new_1 + 1000
         row_for_new_2 <- row_for_new_2 + 1000
@@ -1262,6 +1265,7 @@ run_sim <- function(tsteps, parameters){
     ######################## (1) gain 
     #print("gain")
     new_after_gain <- gain_mge_sample(P,Q,mu_in)
+  
     P <- new_after_gain$Pnew
     Q <- new_after_gain$Qnew
     
@@ -1456,16 +1460,36 @@ run_sim_old <- function(tsteps, parameters){
   # growth_in = fitness cost
   # grate_in = underlying growth rate
   
-  mu_in <- as.numeric(parameters[1:10])
-  gamma_in <- as.numeric(parameters[11:20] )
-  growth_in <- as.numeric(parameters[21:30])
-  grate_in <- as.numeric(parameters[31])
+  # If have rates for all 10 elements
+  if(length(parameters) == 31){
+    mu_in <- as.numeric(parameters[1:10])
+    gamma_in <- as.numeric(parameters[11:20] )
+    growth_in <- as.numeric(parameters[21:30])
+    grate_in <- as.numeric(parameters[31])
+  }
   
   # If just looking at the elements that move
-  if(length(parameters) < 31){
+  if(length(parameters) < 31 && length(parameters) > 7){
     mu_in <- as.numeric(c(0,parameters["mu2"],0,0,parameters["mu5"],parameters["mu6"],parameters["mu7"],parameters["mu8"],0,parameters["mu10"]))
     gamma_in <- as.numeric(c(0,parameters["gamma2"],0,0,parameters["gamma5"],parameters["gamma6"],parameters["gamma7"],parameters["gamma8"],0,parameters["gamma10"]))
     growth_in <- as.numeric(c(0,parameters["f2"],0,0,parameters["f5"],parameters["f6"],parameters["f7"],parameters["f8"],0,parameters["f10"]))
+    grate_in <- as.numeric(parameters["grow"])
+  }
+  
+  # If fixed input - same rates for all elements
+  if(length(parameters) == 4){
+    mu_in <- as.numeric(c(0,parameters["mu"],0,0,parameters["mu"],parameters["mu"],parameters["mu"],parameters["mu"],0,parameters["mu"]))
+    gamma_in <- as.numeric(c(0,parameters["gamma"],0,0,parameters["gamma"],parameters["gamma"],parameters["gamma"],parameters["gamma"],0,parameters["gamma"]))
+    growth_in <- as.numeric(c(0,parameters["f"],0,0,parameters["f"],parameters["f"],parameters["f"],parameters["f"],0,parameters["f"]))
+    grate_in <- as.numeric(parameters["grow"])
+  }
+  
+  # If fixed input - same rates for phage vs plasmids
+  if(length(parameters) == 7){
+    #c("SCCmec","phi6","SaPI","Tn916","phi2","p1","p2","p3","phi3","p4")
+    mu_in <- as.numeric(c(0,parameters["mu_phage"],0,0,parameters["mu_phage"],parameters["mu_plasmid"],parameters["mu_plasmid"],parameters["mu_plasmid"],0,parameters["mu_plasmid"]))
+    gamma_in <- as.numeric(c(0,parameters["gamma_phage"],0,0,parameters["gamma_phage"],parameters["gamma_plasmid"],parameters["gamma_plasmid"],parameters["gamma_plasmid"],0,parameters["gamma_plasmid"]))
+    growth_in <- as.numeric(c(0,parameters["f_phage"],0,0,parameters["f_phage"],parameters["f_plasmid"],parameters["f_plasmid"],parameters["f_plasmid"],0,parameters["f_plasmid"]))
     grate_in <- as.numeric(parameters["grow"])
   }
   
@@ -1490,7 +1514,7 @@ run_sim_old <- function(tsteps, parameters){
   if(length(mu_in) < 10){stop("Not enough gain parameters")}
   if(length(gamma_in) < 10){stop("Not enough loss parameters")}
   if(length(growth_in) < 10){stop("Not enough fitness parameters")}
-  if(sum(growth_in) > 1){stop("Fitness cost too large", return(list(P_all = Pinit, Q_all = Qinit, error = "error", 
+  if(sum(growth_in) > 1){stop("Fitness cost too large", return(list(P_all = Pinit, Q_all = Qinit, error = "", 
                                                                     prev_predict = c(0), totl_predict = c(0))))}
   
   # At start

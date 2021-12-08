@@ -103,15 +103,15 @@ names(theta_fit1)<-names(theta)
 tsteps = 384
 
 ### theta same for all 
-theta = c(mu = 0.08, gamma = 0.09, f = 0.003, grow = 0.1)
+theta = c(mu = 0.1, gamma = 0.1, f = 0.000000001, grow = 0.2)
 
 ## Run for these parameters
 out <- run_sim(tsteps, theta)
 max(out$P_all$time)
 out$error
 
-out$P_all %>% filter(time == 49) %>% arrange(desc(freq))
-out$Q_all %>% filter(time == 49) %>% arrange(desc(freq))
+out$P_all %>% filter(time == 25) %>% arrange(desc(freq))
+out$Q_all %>% filter(time == 25) %>% arrange(desc(freq))
 
 if(max(out$P_all$time)==tsteps){ # if get to end 
   #### element prevalence from model 
