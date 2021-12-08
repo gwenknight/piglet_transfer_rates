@@ -481,6 +481,119 @@ gain_mge_all_new <- function(prnt1, prnt2, mu_in){
 }
 
 
+#### MGE based
+## with multivariate sampling
+## and allocation structure
+## with better sampling
+gain_mge_sample <- function(prnt1, prnt2, mu_in){
+  # prnt/2: parent 1 or 2 profiles
+  # mu_in: rate of movement for each of the 10 MGE in this system
+  
+  d1 <- dim(prnt1)[1]
+  d2 <- dim(prnt2)[1]
+  
+  # total 
+  prnt <- rbind(prnt1, prnt2)
+  
+  # New matrices
+  nprnt1 <-  matrix(0, nrow = 15000, ncol = dim(prnt1)[2])
+  colnames(nprnt1) <- colnames(prnt1)
+  nprnt2 <-  matrix(0, nrow = 15000, ncol = dim(prnt1)[2])
+  colnames(nprnt2) <- colnames(prnt1)
+  
+  nprnt1 <- rbind(prnt1, nprnt1) # if allocate get list conversion
+  nprnt2 <- rbind(prnt2, nprnt2)
+  
+  row_for_new_1 <- d1 + 1
+  row_for_new_2 <- d2 + 1 
+  
+  # Total number of bugs with each MGE
+  nbugs_with_orig = colSums(prnt$freq * prnt[,1:10]) #sum(prnt$freq * prnt[,m])
+  total_bugs = sum(prnt$freq)
+  nbugs_without_orig <- total_bugs - nbugs_with_orig
+  
+  # Number transfer: mass action assumption
+  nh <- nbugs_with_orig * nbugs_without_orig / total_bugs #nbugs_with * (nbugs_without / total_bugs)
+  
+  if(sum(nh)>0){ # if any transfers to do! 
+    
+    # which > 0?
+    pos <- which(nbugs_with_orig > 0)
+    pos_norm <- which(nbugs_with_orig > 5) # these are normally sampled
+    l_norm <- length(pos_norm)
+    pos_binom <- setdiff(pos, pos_norm) # there are binomally sampled
+    l_binom <- length(pos_binom)
+    
+    n_transfer <- matrix(0,1,10)
+    
+    ## If X ~ B(n, p) and if np or nq > 5, then X is approximately N(np, npq)
+    if(l_binom > 0){ # if any np / nq < 5
+      size_b = round(as.numeric(nh[pos_binom]),0)
+      n_gain_binom <- rbinom( n = l_binom, size = size_b, prob = c(as.numeric(mu_in[pos_binom])))
+      n_transfer[pos_binom] <- n_gain_binom # store
+    }
+    
+    if(l_norm > 0){ # if any np / nq > 5
+      size_n = round(as.numeric(mu_in[pos_norm]) * as.numeric(nh[pos_norm]),0)
+      p_n = sqrt(size_n * (1-as.numeric(mu_in[pos_norm])))
+      if(l_norm > 1){
+        n_gain_norm <- round(rmvnorm( n = 1, mean = size_n, sigma = diag(p_n) ),0)
+      } else {
+        n_gain_norm <- round(rnorm( n = 1, mean = size_n, sd = p_n ),0)
+      }
+      n_transfer[pos_norm] <- n_gain_norm # store
+    }
+    
+    
+    # If any transfers
+    if(sum(n_transfer) > 0){
+      
+      # random order
+      wo <- which(n_transfer>0)
+      if(length(wo)>1){
+        order_mge <- sample(as.numeric(wo)) # ensures only do mge with > 0 bugs
+      } else {order_mge <- wo}
+      
+      for(m in order_mge){
+        
+        # Which don't have this mge?
+        profile_without_ind = intersect(which(prnt[,m] == 0), which(prnt[,"freq"]>0))
+        # which will gain it
+        possible_values <- rep(profile_without_ind, prnt[profile_without_ind,"freq"])
+        ss <- sample(possible_values, n_transfer[m], replace = FALSE)
+        
+        # take these from prnt
+        prnt[as.numeric(names(table(ss))),"freq"] <- prnt[as.numeric(names(table(ss))),"freq"] - as.numeric(table(ss))
+        
+        # Make new profiles
+        profiles <- prnt[as.numeric(names(table(ss))),]
+        profiles$freq <- as.numeric(table(ss))
+        profiles[,m] <- 0
+        
+        # Store 
+        p1 <- which(as.numeric(names(table(ss))) <= d1)
+        p2 <- which(as.numeric(names(table(ss))) > d1)
+        if(length(p1) > 0){nprnt1[row_for_new_1:(row_for_new_1+length(p1)-1),] <- profiles[p1,]
+        nprnt1[as.numeric(names(table(ss)))[p1],"freq"] <- nprnt1[as.numeric(names(table(ss)))[p1],"freq"] - profiles[p1,"freq"]}
+        if(length(p2) > 0){nprnt2[row_for_new_2:(row_for_new_2+length(p2)-1),] <- profiles[p2,]
+        nprnt2[as.numeric(names(table(ss)))[p2],"freq"] <- nprnt2[as.numeric(names(table(ss)))[p2],"freq"] - profiles[p2,"freq"]}
+        
+        row_for_new_1 <- row_for_new_1 + 1000
+        row_for_new_2 <- row_for_new_2 + 1000
+      }
+    }
+  }
+  
+  # remove any zero profiles
+  nprnt1 <- nprnt1[which(nprnt1$freq>0),]
+  nprnt2 <- nprnt2[which(nprnt2$freq>0),]
+  
+  return(list(Pnew = nprnt1, Qnew = nprnt2))
+}
+
+
+
+
 
 ################################################################################################################################################################################################################################
 ########################################################************************ LOSS *******************************################################################################################################################
@@ -961,6 +1074,112 @@ loss_mge_all_new <- function(prnt1, prnt2, gamma_in){
   return(list(Pnew = nprnt1, Qnew = nprnt2))
 }
 
+#### MGE based 
+# try to do all at start - sped up by looking only at positive values / indices
+# and in the allocation?
+# and sampling... 
+loss_mge_sample<- function(prnt1, prnt2, gamma_in){
+  # prnt/2: parent 1 or 2 profiles
+  # mu_in: rate of movement for each of the 10 MGE in this system
+  
+  d1 <- dim(prnt1)[1]
+  d2 <- dim(prnt2)[1]
+  
+  # total 
+  prnt <- rbind(prnt1, prnt2)
+  
+  # New matrices
+  nprnt1 <-  matrix(0, nrow = 15000, ncol = dim(prnt1)[2])
+  colnames(nprnt1) <- colnames(prnt1)
+  nprnt2 <-  matrix(0, nrow = 15000, ncol = dim(prnt1)[2])
+  colnames(nprnt2) <- colnames(prnt1)
+  
+  nprnt1 <- rbind(prnt1, nprnt1) # if allocate get list conversion
+  nprnt2 <- rbind(prnt2, nprnt2)
+  
+  row_for_new_1 <- d1 + 1
+  row_for_new_2 <- d2 + 1 
+  
+  # Total number of bugs with each MGE
+  nbugs_with_orig = colSums(prnt$freq * prnt[,1:10]) #sum(prnt$freq * prnt[,m])
+  total_bugs = sum(prnt$freq)
+  n_lost_orig <- nbugs_with_orig * gamma_in 
+  
+  if(sum(n_lost_orig>0)){ # if have to do anything (average chance - need to check)
+    
+    # which > 0? 
+    pos <- which(n_lost_orig > 0)
+    pos_norm <- which(n_lost_orig > 5) # these are normally sampled
+    l_norm <- length(pos_norm)
+    pos_binom <- setdiff(pos, pos_norm) # there are binomally sampled
+    l_binom <- length(pos_binom)
+    
+    # Number lost: 
+    n_lost <- matrix(0,1,10)
+    
+    ## If X ~ B(n, p) and if np or nq > 5, then X is approximately N(np, npq)
+    if(l_binom > 0){ # if any np / nq < 5
+      size_b = round(as.numeric(n_lost_orig[pos_binom]),0) # already gamma in n_lost_orig
+      n_lost_binom <- rbinom( n = l_binom, size = size_b, prob = c(as.numeric(gamma_in[pos_binom])))
+      n_lost[pos_binom] <- n_lost_binom # store
+    }
+    
+    if(l_norm > 0){ # if any np / nq > 5
+      size_n = round(as.numeric(n_lost_orig[pos_norm]),0) # already gamma in n_lost_orig
+      p_n = sqrt(size_n * (1-as.numeric(gamma_in[pos_norm])))
+      if(l_norm > 1){
+        n_lost_norm <- round(rmvnorm( n = 1, mean = size_n, sigma = diag(p_n) ),0)
+      } else {
+        n_lost_norm <- round(rnorm( n = 1, mean = size_n, sd = p_n ),0)
+      }
+      n_lost[pos_norm] <- n_lost_norm # store
+    }
+    
+    
+    # If any transfers
+    if(sum(n_lost) > 0){
+      
+      # which > 0? 
+      pos <- which(n_lost > 0)
+      
+      for(m in pos){
+        
+        # which have this mge
+        profile_with_ind = intersect(which(prnt[,m] == 1), which(prnt[,"freq"]>0))
+        # which will lose it 
+        possible_values <- rep(profile_with_ind, prnt[profile_with_ind,"freq"])
+        ss <- sample(possible_values, n_lost[m], replace = FALSE)
+        
+        # take these from the prnt
+        prnt[as.numeric(names(table(ss))),"freq"] <- prnt[as.numeric(names(table(ss))),"freq"] - as.numeric(table(ss))
+        
+        # Make these into new profiles 
+        profiles <- prnt[as.numeric(names(table(ss))),]
+        profiles$freq <- as.numeric(table(ss))
+        profiles[,m] <- 0
+        
+        # Store
+        p1 <- which(as.numeric(names(table(ss))) <= d1)
+        p2 <- which(as.numeric(names(table(ss))) > d1)
+        if(length(p1) > 0){nprnt1[row_for_new_1:(row_for_new_1+length(p1)-1),] <- profiles[p1,]
+        nprnt1[as.numeric(names(table(ss)))[p1],"freq"] <- nprnt1[as.numeric(names(table(ss)))[p1],"freq"] - profiles[p1,"freq"]}
+        if(length(p2) > 0){nprnt2[row_for_new_2:(row_for_new_2+length(p2)-1),] <- profiles[p2,]
+        nprnt2[as.numeric(names(table(ss)))[p2],"freq"] <- nprnt2[as.numeric(names(table(ss)))[p2],"freq"] - profiles[p2,"freq"]}
+        
+        row_for_new_1 <- row_for_new_1 + 1000
+        row_for_new_2 <- row_for_new_2 + 1000
+        #print(c(m, n_lost[m],sum(prnt1$freq),sum(nprnt1$freq),sum(prnt2$freq),sum(nprnt2$freq)))
+      }
+    }
+  }
+  
+  # remove any zero profiles
+  nprnt1 <- nprnt1[which(nprnt1$freq>0),]
+  nprnt2 <- nprnt2[which(nprnt2$freq>0),]
+  
+  return(list(Pnew = nprnt1, Qnew = nprnt2))
+}
+
 ################################################################################################################################################################################################################################
 ########################################################************************ RUN *******************************################################################################################################################
 ################################################################################################################################################################################################################################
@@ -973,10 +1192,10 @@ run_sim <- function(tsteps, parameters){
   
   # If have rates for all 10 elements
   if(length(parameters) == 31){
-  mu_in <- as.numeric(parameters[1:10])
-  gamma_in <- as.numeric(parameters[11:20] )
-  growth_in <- as.numeric(parameters[21:30])
-  grate_in <- as.numeric(parameters[31])
+    mu_in <- as.numeric(parameters[1:10])
+    gamma_in <- as.numeric(parameters[11:20] )
+    growth_in <- as.numeric(parameters[21:30])
+    grate_in <- as.numeric(parameters[31])
   }
   
   # If just looking at the elements that move
@@ -1004,7 +1223,7 @@ run_sim <- function(tsteps, parameters){
     grate_in <- as.numeric(parameters["grow"])
   }
   
-
+  
   
   # carrying capacity
   K = 0.8 * 10^7
@@ -1042,13 +1261,13 @@ run_sim <- function(tsteps, parameters){
     
     ######################## (1) gain 
     #print("gain")
-    new_after_gain <- gain_mge_all_new(P,Q,mu_in)
+    new_after_gain <- gain_mge_sample(P,Q,mu_in)
     P <- new_after_gain$Pnew
     Q <- new_after_gain$Qnew
     
     ######################## (2) loss
     #print("loss")
-    new_after_loss <- loss_mge_all_new(P,Q,gamma_in)
+    new_after_loss <- loss_mge_sample(P,Q,gamma_in)
     Ploss <- new_after_loss$Pnew
     Qloss <- new_after_loss$Qnew
     
@@ -1250,7 +1469,7 @@ run_sim_old <- function(tsteps, parameters){
     grate_in <- as.numeric(parameters["grow"])
   }
   
- 
+  
   
   # carrying capacity
   K = 0.8 * 10^7
@@ -1288,13 +1507,13 @@ run_sim_old <- function(tsteps, parameters){
     
     ######################## (1) gain 
     # print("gain")
-    new_after_gain <- gain_mge(P,Q,mu_in)
+    new_after_gain <- gain_mge_all_new(P,Q,mu_in)
     P <- new_after_gain$Pnew
     Q <- new_after_gain$Qnew
     
     ######################## (2) loss
     # print("loss")
-    new_after_loss <- loss_mge(P,Q,gamma_in)
+    new_after_loss <- loss_mge_all_new(P,Q,gamma_in)
     Ploss <- new_after_loss$Pnew
     Qloss <- new_after_loss$Qnew
     
