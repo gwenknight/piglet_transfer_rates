@@ -485,6 +485,7 @@ gain_mge_all_new <- function(prnt1, prnt2, mu_in){
 ## with multivariate sampling
 ## and allocation structure
 ## with better sampling
+
 gain_mge_sample <- function(prnt1, prnt2, mu_in){
   # prnt/2: parent 1 or 2 profiles
   # mu_in: rate of movement for each of the 10 MGE in this system
@@ -554,10 +555,11 @@ gain_mge_sample <- function(prnt1, prnt2, mu_in){
     if(sum(n_transfer) > 0){
       
       # random order
-      wo <- which(n_transfer>0)
-      if(length(wo)>1){
-        order_mge <- sample(as.numeric(wo)) # ensures only do mge with > 0 bugs
-      } else {order_mge <- wo}
+      # wo <- which(n_transfer>0)
+      # if(length(wo)>1){
+      #   order_mge <- sample(as.numeric(wo)) # ensures only do mge with > 0 bugs
+      # } else {order_mge <- wo}
+      order_mge <- sample(1:10,length(which(n_transfer>0)),replace = FALSE,prob=n_transfer)
       
       for(m in order_mge){
         
@@ -596,6 +598,190 @@ gain_mge_sample <- function(prnt1, prnt2, mu_in){
   # remove any zero profiles
   nprnt1 <- nprnt1[which(nprnt1$freq>0),]
   nprnt2 <- nprnt2[which(nprnt2$freq>0),]
+  return(list(Pnew = nprnt1, Qnew = nprnt2))
+}
+
+
+#### MGE based
+## with multivariate sampling
+## and allocation structure
+## with better sampling
+## big matrix... 
+gain_mge_sample_bg <- function(prnt1, prnt2, mu_in){
+  # prnt/2: parent 1 or 2 profiles
+  # mu_in: rate of movement for each of the 10 MGE in this system
+  
+  d1 <- nrow(prnt1)
+  d2 <- nrow(prnt2)
+  
+  # total 
+  prnt <- as.data.frame(matrix(0,d1+d2, dim(prnt1)[2]))
+  colnames(prnt) <- colnames(prnt1)
+  prnt[1:d1,]<-prnt1
+  prnt[(d1+1):(d1+d2),] <- prnt2
+  prnt$parent <- 1
+  prnt[(d1+1):(d1+d2),"parent"] <- 2
+  
+  #prnt <- rbind(prnt1, prnt2)
+  
+  # New matrices
+  nprnt <-  as.data.frame(matrix(0, nrow = 15000, ncol = (dim(prnt)[2])))
+  colnames(nprnt) <- colnames(prnt)
+  
+  nprnt[1:(d1+d2),] <- prnt 
+  row_for_new <- d1 + d2 + 1
+  
+  # Total number of bugs with each MGE
+  nbugs_with_orig = colSums(prnt$freq * prnt[,1:10]) #sum(prnt$freq * prnt[,m])
+  total_bugs = sum(prnt$freq)
+  nbugs_without_orig <- total_bugs - nbugs_with_orig
+  
+  # Number transfer: mass action assumption
+  nh <- round(nbugs_with_orig * nbugs_without_orig / total_bugs,0) #nbugs_with * (nbugs_without / total_bugs)
+  
+  if(sum(nh)>0){ # if any transfers to do! 
+    
+    # which > 0?
+    pos <- which(nbugs_with_orig > 0)
+    pos_norm <- which(nbugs_with_orig > 5) # these are normally sampled
+    l_norm <- length(pos_norm)
+    pos_binom <- setdiff(pos, pos_norm) # there are binomally sampled
+    l_binom <- length(pos_binom)
+    
+    n_transfer <- matrix(0,1,10)
+    
+    ## If X ~ B(n, p) and if np or nq > 5, then X is approximately N(np, npq)
+    if(l_binom > 0){ # if any np / nq < 5
+      size_b = round(as.numeric(nh[pos_binom]),0)
+      n_gain_binom <- rbinom( n = l_binom, size = size_b, prob = c(as.numeric(mu_in[pos_binom])))
+      n_transfer[pos_binom] <- n_gain_binom # store
+    }
+    
+    if(l_norm > 0){ # if any np / nq > 5
+      size_n = round(as.numeric(mu_in[pos_norm]) * as.numeric(nh[pos_norm]),0)
+      p_n = sqrt(size_n * (1-as.numeric(mu_in[pos_norm])))
+      if(l_norm > 1){
+        n_gain_norm <- round(rmvnorm( n = 1, mean = size_n, sigma = diag(p_n) ),0)
+      } else {
+        n_gain_norm <- round(rnorm( n = 1, mean = size_n, sd = p_n ),0)
+      }
+      n_transfer[pos_norm] <- n_gain_norm # store
+    }
+    
+    # If any transfers
+    if(sum(n_transfer) > 0){
+      
+      # random order
+      # wo <- which(n_transfer>0)
+      # if(length(wo)>1){
+      #   order_mge <- sample(as.numeric(wo)) # ensures only do mge with > 0 bugs
+      # } else {order_mge <- wo}
+      
+      order_mge <- sample(which(n_transfer>0), replace = FALSE)
+      
+      ## negative prnt
+      for(m in order_mge){
+        neg_prnt <- as.data.frame(prnt) %>% filter(prnt[,m]==0) 
+        new_profiles <- neg_prnt[sample.int(nrow(neg_prnt), n_transfer[m], replace = TRUE, prob = neg_prnt$freq),] %>% 
+          mutate(freq = 1) #%>% 
+          #group_by(parent) %>%
+          #plyr::count(., vars = c("v1","v2","v3","v4","v5","v6","v7","v8","v9","v10","parent"),wt_var = "freq") %>% 
+          #mutate(Total = select(., "v1":"v10") %>% rowSums()) %>% 
+          #filter(Total>0) %>% select(-Total)
+        
+        #samples <- mapply(sample.int, as.data.frame(prnt) %>% filter(prnt[,m]==0) , n_transfer)
+        # which will be removed? 
+        
+        new_profiles_remove_frm_parent <- new_profiles
+        new_profiles_remove_frm_parent$freq <- -new_profiles_remove_frm_parent$freq
+        
+        # new profiles store
+        new_profiles[,m] <- 1
+        nprnt[row_for_new:(row_for_new+nrow(new_profiles)-1),] <- new_profiles[,colnames(nprnt)]
+        nprnt[(row_for_new+nrow(new_profiles)):(row_for_new + 2*nrow(new_profiles)-1),] <- new_profiles_remove_frm_parent[,colnames(nprnt)]
+        
+        row_for_new <- row_for_new + 2 * nrow(new_profiles)
+      }
+      
+      # 
+      # 
+      # 
+      # }
+      # # gives number of bugs without the element in each profile
+      # neg_prnt <- (1 - prnt[,1:10]) * prnt$freq
+      # # Sample from these to know which get the element
+      # to_sample <- apply(neg_prnt, 2, function(x) rep(seq(1:length(x)), x))
+      # samples <- mapply(sample, to_sample, n_transfer)
+      # 
+      # ## Group by profile number - need to do this? 
+      # max_length <- max(unlist(lapply (n_profiles, FUN = length)))
+      # n_profiles <- lapply(samples, table)
+      # 
+      # howmany_each_profile <- sapply(n_profiles, function (x) {length (x) <- max_length; return (x)})
+      # np <- sapply(n_profiles, function (x) {length (x) <- max_length; return (as.numeric(names(x)))})
+      # which_profile <- sapply(np, function (x) {length (x) <- max_length; return (x)})
+      # 
+      # mapply(dplyr(select), prnt, which_profile)
+      # 
+      # mapply(which("%in%"), as.data.frame(prnt), which_profile)
+      # 
+      # 
+      # sapply(as.numeric(names(n_profiles)), function (x) {length (x) <- max_length; return (x)})
+      # 
+      # ## 
+      # mapply(as.numeric(names(n_profiles)), prnt, as.numeric((n_profiles)))
+      # 
+      # 
+      # ## just go straight to samples?
+      # max_length <- max(unlist(lapply (samples, FUN = length)))
+      # sapply(samples, function (x) {length (x) <- max_length; return (x)})
+      # 
+      # # Sample from prnt then group? Not sure how from above matrix... 
+      # 
+      # 
+      
+      
+      
+      # for(m in order_mge){
+      #   
+      #   # Which don't have this mge?
+      #   profile_without_ind = intersect(which(prnt[,m] == 0), which(prnt[,"freq"]>0))
+      #   # which will gain it
+      #   possible_values <- rep(profile_without_ind, prnt[profile_without_ind,"freq"])
+      #   ss <- sample(possible_values, n_transfer[m], replace = FALSE)
+      #   
+      #   # take these from prnt
+      #   prnt[as.numeric(names(table(ss))),"freq"] <- prnt[as.numeric(names(table(ss))),"freq"] - as.numeric(table(ss))
+      #   
+      #   # Make new profiles
+      #   profiles <- prnt[as.numeric(names(table(ss))),]
+      #   profiles$freq <- as.numeric(table(ss))
+      #   profiles[,m] <- 1
+      #   
+      #   # Store 
+      #   p1 <- which(as.numeric(names(table(ss))) <= d1)
+      #   p2 <- which(as.numeric(names(table(ss))) > d1)
+      #   if(length(p1) > 0){nprnt1[row_for_new_1:(row_for_new_1+length(p1)-1),] <- profiles[p1,]
+      #   nprnt1[as.numeric(names(table(ss)))[p1],"freq"] <- nprnt1[as.numeric(names(table(ss)))[p1],"freq"] - profiles[p1,"freq"]}
+      #   if(length(p2) > 0){nprnt2[row_for_new_2:(row_for_new_2+length(p2)-1),] <- profiles[p2,]
+      #   nprnt2[(as.numeric(names(table(ss)))[p2]-d1),"freq"] <- nprnt2[(as.numeric(names(table(ss)))[p2]-d1),"freq"] - profiles[p2,"freq"]}
+      #   
+      #   row_for_new_1 <- row_for_new_1 + 1000
+      #   row_for_new_2 <- row_for_new_2 + 1000
+      #   
+      #   #print(c(sum(nprnt1$freq), sum(nprnt2$freq), sum(prnt1$freq),sum(prnt2$freq),
+      #   #        sum(profiles[p1,"freq"]), sum(profiles[p2,"freq"]), n_transfer[m], sum(profiles[p1,"freq"]) + sum(profiles[p2,"freq"])))
+      # }
+    }
+    #print(c(sum(nprnt1$freq), sum(nprnt2$freq), sum(prnt1$freq),sum(prnt2$freq)))
+  }
+  
+  # Group so that negative freq taken off
+  nprnt <- nprnt %>% plyr::count(., vars = c("v1","v2","v3","v4","v5","v6","v7","v8","v9","v10","parent"),wt_var = "freq") # aggregate
+  
+  # remove any zero profiles
+  nprnt1 <- nprnt[which(nprnt$freq>0),] %>% filter(parent == 1) %>% dplyr::select(-parent)
+  nprnt2 <- nprnt[which(nprnt$freq>0),] %>% filter(parent == 2) %>% dplyr::select(-parent)
   return(list(Pnew = nprnt1, Qnew = nprnt2))
 }
 
@@ -1274,8 +1460,8 @@ run_sim <- function(tsteps, parameters){
     
     ######################## (1) gain 
     #print("gain")
-    new_after_gain <- gain_mge_sample(P,Q,mu_in)
-  
+    new_after_gain <- gain_mge_sample_bg(P,Q,mu_in)
+    
     P <- new_after_gain$Pnew
     Q <- new_after_gain$Qnew
     
