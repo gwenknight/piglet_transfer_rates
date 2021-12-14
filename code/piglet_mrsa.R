@@ -12,6 +12,7 @@ start_time = Sys.time()
 bacteria = rbind(as.matrix(expand.grid(rep(list(0:1), 10))),
                  as.matrix(expand.grid(rep(list(0:1), 10))))
 #just randomly deciding which 2 strains start at 1000 bacteria at the moment
+
 bacteria = cbind(bacteria, sample(c(1000, 1000, rep(0, nrow(bacteria)-2)), nrow(bacteria), replace = F))
 bacteria = cbind(bacteria, c(rep(1, nrow(bacteria)/2), rep(2, nrow(bacteria)/2)))
 
@@ -63,7 +64,7 @@ difference_list = list()
 for(i in 1:nrow(bacteria)){
   
   #valid transitions must have the same parent type
-  same_parents = which(bacteria[,"parent"] == bacteria[i,"parent"])
+  #same_parents = which(bacteria[,"parent"] == bacteria[i,"parent"])
   
   #calculate the difference between each strain and every other strain
   differences = t(t(bacteria[,-c(ncol(bacteria)-1, ncol(bacteria))]) -
@@ -76,7 +77,7 @@ for(i in 1:nrow(bacteria)){
   differences = cbind(differences, "id" = c(1:nrow(differences)))
   
   #final possible transitions are those with same parent AND at most 1 difference in MGE profile
-  possible_transitions = intersect(same_parents, possible_transitions)
+  #possible_transitions = intersect(same_parents, possible_transitions)
   
   #only keep the section of the difference matrix that's for valid transitions
   differences = differences[possible_transitions,]
@@ -122,7 +123,7 @@ for(t in 2:times){
     #sum probas (since each MGE can either be gained or lost only)
     #now, these probas represent the probability for each MGE status to change during this timestep
     #ie an MGE already present can only be lost, and an MGE currently absent can only be gained
-    probas = lose_probas + gain_probas
+    probas_sum = lose_probas + gain_probas
     
     #recover the difference matrix for our strain i
     differences = difference_list[[i]]
@@ -132,7 +133,7 @@ for(t in 2:times){
     # the profile of strain i to the profile of strain 10, this will translate 
     # to a 0.5 proba of bacteria of strain i becoming strain 10 during this timestep
     #inversing the matrices twice is the fastest option to do this (I think?)
-    probas = abs(t(t(differences[,-ncol(differences)]) * probas))
+    probas = abs(t(t(differences[,-ncol(differences)]) * probas_sum))
     
     #collapse to vector using rowsums (only 1 value per row will be greater than 0)
     probas = rowsums(probas)
@@ -169,11 +170,12 @@ all_results = as.data.frame(all_results)
 all_results$time = c(1:nrow(all_results))
 
 all_results = melt(all_results, id.vars = "time")
+all_results$parent = c(rep(1, nrow(bacteria)/2), rep(2, nrow(bacteria)/2))
 
 all_results %>%
   filter(value > 0) %>%
   ggplot() +
-  geom_line(aes(x = time, y = value, group = variable)) +
+  geom_line(aes(x = time, y = value, group = variable, col = factor(parent))) +
   scale_y_continuous(trans=log10_trans(),
                      breaks=trans_breaks("log10", function(x) 10^x),
                      labels=trans_format("log10", math_format(10^.x))) +
