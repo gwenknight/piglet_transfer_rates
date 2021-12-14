@@ -64,7 +64,7 @@ difference_list = list()
 for(i in 1:nrow(bacteria)){
   
   #valid transitions must have the same parent type
-  #same_parents = which(bacteria[,"parent"] == bacteria[i,"parent"])
+  same_parents = which(bacteria[,"parent"] == bacteria[i,"parent"])
   
   #calculate the difference between each strain and every other strain
   differences = t(t(bacteria[,-c(ncol(bacteria)-1, ncol(bacteria))]) -
@@ -77,7 +77,7 @@ for(i in 1:nrow(bacteria)){
   differences = cbind(differences, "id" = c(1:nrow(differences)))
   
   #final possible transitions are those with same parent AND at most 1 difference in MGE profile
-  #possible_transitions = intersect(same_parents, possible_transitions)
+  possible_transitions = intersect(same_parents, possible_transitions)
   
   #only keep the section of the difference matrix that's for valid transitions
   differences = differences[possible_transitions,]
