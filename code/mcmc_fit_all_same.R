@@ -26,13 +26,16 @@ source("code/piglet_mrsa_functions.R")
 source("code/mcmcmh.r") # had to change line172
 
 ## All same
-init.theta = c(mu = 0.7953883, gamma = 1.963830, f = 0.003424697, grow = 1.436710)
+#init.theta = c(mu = 0.7953883, gamma = 1.963830, f = 0.003424697, grow = 1.436710)
+init.theta = c(mu = 4.58960662274629, gamma = 0.774851268517529, f = 0.000899333599447348, 
+               grow = 1.39733915676241)
 lower.p <- init.theta
 lower.p[] <- 0
 
 mcmc.epi3_79 <- mcmcMH(target = run_sim_logPosterior,
                     limits=list(lower = lower.p),
-                    init.theta = c(mu = 0.15, gamma = 0.06, f = 0.03, grow = 0.0978),
+                    init.theta = c(mu = 4.58960662274629, gamma = 0.774851268517529, f = 0.000899333599447348, 
+                                   grow = 1.39733915676241),
                     proposal.sd = c(rep(0.005,3), 0.005),
                     n.iterations = 2000,
                     adapt.size.start = 100,

@@ -26,18 +26,23 @@ source("code/piglet_mrsa_functions.R")
 source("code/mcmcmh.r") # had to change line172
 
 ## Phage same, plasmids same 
-init.theta = c(mu_phage = 0.15, gamma_phage = 0.06, f_phage = 0.03, 
-               mu_plasmid = 0.15, gamma_plasmid = 0.06, f_plasmid = 0.03,
-               grow = 0.0978)
+# init.theta = c(mu_phage = 0.15, gamma_phage = 0.06, f_phage = 0.03, 
+#                mu_plasmid = 0.15, gamma_plasmid = 0.06, f_plasmid = 0.03,
+#                grow = 0.0978)
+init.theta = c(mu_phage = 0.250183096038211, gamma_phage = 1.40119453558188, 
+  f_phage = 0.00834685332776346, mu_plasmid = 1.97624042546612, 
+  gamma_plasmid = 0.348806989403094, f_plasmid = 0.143797591886829, 
+  grow = 1.67736788787884)
 
 lower.p <- init.theta
 lower.p[] <- 0
 
 mcmc.epi3_79 <- mcmcMH(target = run_sim_logPosterior,
                        limits=list(lower = lower.p),
-                       init.theta = c(mu_phage = 0.15, gamma_phage = 0.06, f_phage = 0.03, 
-                                      mu_plasmid = 0.15, gamma_plasmid = 0.06, f_plasmid = 0.03,
-                                      grow = 0.0978),
+                       init.theta = c(mu_phage = 0.250183096038211, gamma_phage = 1.40119453558188, 
+                                      f_phage = 0.00834685332776346, mu_plasmid = 1.97624042546612, 
+                                      gamma_plasmid = 0.348806989403094, f_plasmid = 0.143797591886829, 
+                                      grow = 1.67736788787884),
                        proposal.sd = c(rep(0.005,8)),
                        n.iterations = 2000,
                        adapt.size.start = 100,

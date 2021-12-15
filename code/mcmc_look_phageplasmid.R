@@ -14,7 +14,7 @@ source("code/piglet_mrsa_functions.R")
 source("code/mcmcmh.r") # had to change line172
 
 ### CHANGE
-filename <- "2021-12-15_16-57-51_GMT"
+filename <- "2021-12-15_19-48-53_GMT"
 mcmc.epi_every <- c()
 mcmc.epi_every$trace <- read.csv(here::here("fits/phage_plasmid",paste0(filename,"_","trace",".csv")))[,-1]
 mcmc.epi_every$acceptance.rate <- read.csv(here::here("fits/phage_plasmid",paste0(filename,"_","acceptance_rates",".csv")))
