@@ -25,6 +25,7 @@ piglet_mrsa_movement <- function(times, parameters){
   
   # If fixed input - same rates for all elements
   if(length(parameters) == 4){
+    if(is.null(names(parameters))){stop("No names for parameters")}
     rate_loss <- as.numeric(c(0,parameters["mu"],0,0,parameters["mu"],parameters["mu"],parameters["mu"],parameters["mu"],0,parameters["mu"]))
     rate_gain <- as.numeric(c(0,parameters["gamma"],0,0,parameters["gamma"],parameters["gamma"],parameters["gamma"],parameters["gamma"],0,parameters["gamma"]))
     fitness_costs <- as.numeric(c(0,parameters["f"],0,0,parameters["f"],parameters["f"],parameters["f"],parameters["f"],0,parameters["f"]))
@@ -70,13 +71,15 @@ piglet_mrsa_movement <- function(times, parameters){
   #parameters for growth
   #nb that's just a logistic deterministic function in the model at the moment
   Nmax = 1e6
+  # fitness cost
+  fitness_cost_all <- rowSums(t(t(bacteria[,1:(ncol(bacteria)-2)]) * fitness_costs))
   
   #summary matrix to store number of bacteria in each strain at each timepoint
   all_results = matrix(0, nrow = times, ncol = nrow(bacteria))
   all_results[1,] = bacteria[,"freq"]
   
-  #summary matrix to store MGE prevalence at each timepoint
-  all_mge_prev = matrix(0, nrow = times, ncol = (ncol(bacteria)-2))
+  #summary matrix to store MGE prevalence at each timepoint in each parent
+  all_mge_prev = matrix(0, nrow = 2*times, ncol = (ncol(bacteria)-2))
   
   #first, we work out valid transitions for each strain
   # since we are assuming that only one gain/loss event can happen per timestep
@@ -122,10 +125,13 @@ piglet_mrsa_movement <- function(times, parameters){
     #MGE prevalence currently:
     #(remember first 10 columns are the MGE profiles)
     MGE_prevalence = bacteria[,c(1:10)]*bacteria[,"freq"]
-    MGE_prevalence = colsums(MGE_prevalence)/tot_bacteria
+    MGE_prevalence_all = colsums(MGE_prevalence)/tot_bacteria
+    MGE_prevalence_1 = colsums(MGE_prevalence[1:nrow(bacteria)/2,])/sum(bacteria[1:nrow(bacteria)/2,"freq"]) # just in parent 1
+    MGE_prevalence_2 = colsums(MGE_prevalence[(1+nrow(bacteria)/2):nrow(bacteria),])/sum(bacteria[(1+nrow(bacteria)/2):nrow(bacteria),"freq"]) # just in parent 2
     
     #Store MGE prev
-    all_mge_prev[(t-1),] = MGE_prevalence
+    all_mge_prev[(t-1),] = MGE_prevalence_1
+    all_mge_prev[(1+times) + (t-1),] = MGE_prevalence_2
     
     #for each strain:
     for(i in 1:nrow(bacteria)){
@@ -141,7 +147,7 @@ piglet_mrsa_movement <- function(times, parameters){
       
       #gain proba is either a density dependent proba (rate*n_recipient*n_donors/all_bacteria)
       #   or 0 (if MGE is already present in that strain)
-      gain_probas = 1-exp(-rate_gain*bacteria[i,"freq"]*MGE_prevalence)
+      gain_probas = 1-exp(-rate_gain*bacteria[i,"freq"]*MGE_prevalence_all)
       gain_probas = pmin(gain_probas, 1-bacteria_profile)
       
       #sum probas (since each MGE can either be gained or lost only)
@@ -177,10 +183,8 @@ piglet_mrsa_movement <- function(times, parameters){
       #if some bacteria remain in their original strain i, they now grow
       #currently just a deterministic logistic calculation
       # Need to add in fitness cost of elements: assume additive atm 
-      fitness_cost_i <- sum(new_bacteria[i,1:(ncol(new_bacteria)-2)] * fitness_costs)
       new_bacteria[i,"freq"] = new_bacteria[i,"freq"] +
-        round(bacteria[i,"freq"] * (1 - fitness_cost_i) * growth_rate * (1 - sum(bacteria[,"freq"])/Nmax))
-      
+        round(bacteria[i,"freq"] * (1 - fitness_cost_all[i]) * growth_rate * (1 - sum(bacteria[,"freq"])/Nmax))
     }
     
     #update main bacteria matrix
@@ -193,8 +197,13 @@ piglet_mrsa_movement <- function(times, parameters){
   
   # Last MGE prevalence
   MGE_prevalence = bacteria[,c(1:10)]*bacteria[,"freq"]
-  MGE_prevalence = colsums(MGE_prevalence)/tot_bacteria
-  all_mge_prev[times,] = MGE_prevalence
+  MGE_prevalence_all = colsums(MGE_prevalence)/tot_bacteria
+  MGE_prevalence_1 = colsums(MGE_prevalence[1:nrow(bacteria)/2,])/sum(bacteria[1:nrow(bacteria)/2,"freq"]) # just in parent 1
+  MGE_prevalence_2 = colsums(MGE_prevalence[(1+nrow(bacteria)/2):nrow(bacteria),])/sum(bacteria[(1+nrow(bacteria)/2):nrow(bacteria),"freq"]) # just in parent 2
+  
+  #Store MGE prev
+  all_mge_prev[(times),] = MGE_prevalence_1
+  all_mge_prev[(2*times),] = MGE_prevalence_2
   
   #clean up 
   all_results = as.data.frame(all_results_out)
@@ -210,8 +219,9 @@ piglet_mrsa_movement <- function(times, parameters){
   # Prevalence of MGE at same time as data
   #clean up MGE
   all_mge_prev = as.data.frame(all_mge_prev)
-  all_mge_prev$time = c(1:nrow(all_mge_prev))
-  all_mge_prev = melt(all_mge_prev, id.vars = "time")
+  all_mge_prev$time = seq(1,times,1)
+  all_mge_prev$parent = c(rep(1, times), rep(2, times))
+  all_mge_prev = melt(all_mge_prev, id.vars = c("parent","time"))
   
   prev_predict <- all_mge_prev %>% 
     filter(time %in% c(4,48,96,288,384))
@@ -221,4 +231,40 @@ piglet_mrsa_movement <- function(times, parameters){
               prev_predict = prev_predict, totl_predict = totl_predict))
 }
 
-piglet_mrsa_movement(384, theta)
+
+#piglet_mrsa_movement(384, theta)
+
+
+
+### Calculate log posterior from model at theta parameter values
+run_sim_logPosterior <- function(theta){
+  tsteps = 384
+  
+  ## Run for these parameters
+  out <- piglet_mrsa_movement(tsteps, theta)
+  
+  #### element prevalence from model 
+  #c("SCCmec","phi6","SaPI","Tn916","phi2","p1","p2","p3","phi3","p4")
+  model_outputp <- out$prev_predict %>% filter(variable %in% c("V2","V5","V6","V7","V8","V10"))
+  model_outputp$prev <- round(model_outputp$value,2)
+  
+  # Check what distribution of n_colonies at this prevalence in the model pig
+  distributs <- left_join(model_outputp, dist_like, by = "prev") %>% select(parent, time, variable, prob_all, n_colonies_prev)
+  # e.g. to check 
+  #distributs %>% filter(name == "p1", parent == 1, n_colonies_prev == 0.9900) %>% summarise(sum(prob_all))
+  
+  # lookup the probability from this distribution for the data
+  likelihood_lookup_elements <- left_join(data_6, distributs, by = c("parent","time","variable","n_colonies_prev")) %>% summarise(sum(log(prob_all)))
+  
+  #### total bugs output from model 
+  model_outputt <- out$totl_predict
+  
+  likelihood_lookup_totals <- left_join(model_outputt, totals, by = c("time", "parent")) %>% rowwise() %>% mutate(val_in = as.numeric(between(total,min,max))) %>%
+    as.data.frame() %>% mutate(likelihood = weight * val_in) %>% summarise(sum(log(likelihood)))
+  
+  #### Compare to data 
+  compare_dat <- likelihood_lookup_elements + likelihood_lookup_totals
+  
+  # return log likelihood
+  as.numeric(compare_dat)
+}
