@@ -3,6 +3,11 @@ library(tmvtnorm)
 library(tidyverse)
 library(here)
 library(coda)
+library(ggplot2)
+library(scales)
+library(reshape2)
+library(dplyr)
+library(Rfast)
 
 
 ### Data 
