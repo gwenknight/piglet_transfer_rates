@@ -140,7 +140,7 @@ for(t in 2:times){
     #okay, this is needed to set a probability of the strain NOT changing profile
     #it's not ideal, because sometimes the probabilities add up to more than 1, hence the max() function
     #something to look into...
-    probas[probas == 0] = max(0, 1 - probas)
+    probas[rowsums(differences[,1:10])==0] = max(0, 1 - probas) #probas[probas == 0] = max(0, 1 - probas)
     
     #use multinomial sampling to decide what the bacteria from strain i now become,
     # then add that amount to the updated matrix of bacteria numbers
@@ -161,6 +161,7 @@ for(t in 2:times){
   bacteria = new_bacteria
   #store numbers for each strain at that timepoint
   all_results[t,] = bacteria[,"freq"]
+  #store MGE prevalence at that timepoint
   
 }
 

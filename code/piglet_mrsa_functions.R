@@ -2,7 +2,7 @@
 
 ### Function to move MGE
 
-function <- piglet_mrsa_movement(times, parameters){
+piglet_mrsa_movement <- function(times, parameters){
   # tsteps = number of time steps
   # theta = parameters
   
@@ -11,7 +11,7 @@ function <- piglet_mrsa_movement(times, parameters){
   if(length(parameters) == 31){
     rate_loss <- as.numeric(parameters[1:10])
     rate_gain <- as.numeric(parameters[11:20] )
-    growth_in <- as.numeric(parameters[21:30])
+    fitness_costs <- as.numeric(parameters[21:30])
     growth_rate <- as.numeric(parameters[31])
   }
   
@@ -19,7 +19,7 @@ function <- piglet_mrsa_movement(times, parameters){
   if(length(parameters) < 31 && length(parameters) > 7){
     rate_loss <- as.numeric(c(0,parameters["mu2"],0,0,parameters["mu5"],parameters["mu6"],parameters["mu7"],parameters["mu8"],0,parameters["mu10"]))
     rate_gain <- as.numeric(c(0,parameters["gamma2"],0,0,parameters["gamma5"],parameters["gamma6"],parameters["gamma7"],parameters["gamma8"],0,parameters["gamma10"]))
-    growth_in <- as.numeric(c(0,parameters["f2"],0,0,parameters["f5"],parameters["f6"],parameters["f7"],parameters["f8"],0,parameters["f10"]))
+    fitness_costs <- as.numeric(c(0,parameters["f2"],0,0,parameters["f5"],parameters["f6"],parameters["f7"],parameters["f8"],0,parameters["f10"]))
     growth_rate <- as.numeric(parameters["grow"])
   }
   
@@ -27,7 +27,7 @@ function <- piglet_mrsa_movement(times, parameters){
   if(length(parameters) == 4){
     rate_loss <- as.numeric(c(0,parameters["mu"],0,0,parameters["mu"],parameters["mu"],parameters["mu"],parameters["mu"],0,parameters["mu"]))
     rate_gain <- as.numeric(c(0,parameters["gamma"],0,0,parameters["gamma"],parameters["gamma"],parameters["gamma"],parameters["gamma"],0,parameters["gamma"]))
-    growth_in <- as.numeric(c(0,parameters["f"],0,0,parameters["f"],parameters["f"],parameters["f"],parameters["f"],0,parameters["f"]))
+    fitness_costs <- as.numeric(c(0,parameters["f"],0,0,parameters["f"],parameters["f"],parameters["f"],parameters["f"],0,parameters["f"]))
     growth_rate <- as.numeric(parameters["grow"])
   }
   
@@ -36,14 +36,14 @@ function <- piglet_mrsa_movement(times, parameters){
     #c("SCCmec","phi6","SaPI","Tn916","phi2","p1","p2","p3","phi3","p4")
     rate_loss <- as.numeric(c(0,parameters["mu_phage"],0,0,parameters["mu_phage"],parameters["mu_plasmid"],parameters["mu_plasmid"],parameters["mu_plasmid"],0,parameters["mu_plasmid"]))
     rate_gain <- as.numeric(c(0,parameters["gamma_phage"],0,0,parameters["gamma_phage"],parameters["gamma_plasmid"],parameters["gamma_plasmid"],parameters["gamma_plasmid"],0,parameters["gamma_plasmid"]))
-    growth_in <- as.numeric(c(0,parameters["f_phage"],0,0,parameters["f_phage"],parameters["f_plasmid"],parameters["f_plasmid"],parameters["f_plasmid"],0,parameters["f_plasmid"]))
+    fitness_costs <- as.numeric(c(0,parameters["f_phage"],0,0,parameters["f_phage"],parameters["f_plasmid"],parameters["f_plasmid"],parameters["f_plasmid"],0,parameters["f_plasmid"]))
     growth_rate <- as.numeric(parameters["grow"])
   }
   
   # Errors
   if(length(rate_gain) < 10){stop("Not enough gain parameters")}
   if(length(rate_loss) < 10){stop("Not enough loss parameters")}
-  if(length(growth_in) < 10){stop("Not enough fitness parameters")}
+  if(length(fitness_costs) < 10){stop("Not enough fitness parameters")}
   if(sum(growth_in) > 1){stop("Fitness cost too large")}
   
   #matrix to store all possible MGE combinations (ie all possible strains)
@@ -74,6 +74,9 @@ function <- piglet_mrsa_movement(times, parameters){
   #summary matrix to store number of bacteria in each strain at each timepoint
   all_results = matrix(0, nrow = times, ncol = nrow(bacteria))
   all_results[1,] = bacteria[,"freq"]
+  
+  #summary matrix to store MGE prevalence at each timepoint
+  all_mge_prev = matrix(0, nrow = times, ncol = (ncol(bacteria)-2))
   
   #first, we work out valid transitions for each strain
   # since we are assuming that only one gain/loss event can happen per timestep
@@ -121,6 +124,9 @@ function <- piglet_mrsa_movement(times, parameters){
     MGE_prevalence = bacteria[,c(1:10)]*bacteria[,"freq"]
     MGE_prevalence = colsums(MGE_prevalence)/tot_bacteria
     
+    #Store MGE prev
+    all_mge_prev[(t-1),] = MGE_prevalence
+    
     #for each strain:
     for(i in 1:nrow(bacteria)){
       
@@ -158,7 +164,7 @@ function <- piglet_mrsa_movement(times, parameters){
       #okay, this is needed to set a probability of the strain NOT changing profile
       #it's not ideal, because sometimes the probabilities add up to more than 1, hence the max() function
       #something to look into...
-      probas[probas == 0] = max(0, 1 - probas)
+      probas[rowsums(differences[,1:10])==0] = max(0, 1 - probas)
       
       #use multinomial sampling to decide what the bacteria from strain i now become,
       # then add that amount to the updated matrix of bacteria numbers
@@ -170,8 +176,10 @@ function <- piglet_mrsa_movement(times, parameters){
       
       #if some bacteria remain in their original strain i, they now grow
       #currently just a deterministic logistic calculation
+      # Need to add in fitness cost of elements: assume additive atm 
+      fitness_cost_i <- sum(new_bacteria[i,1:(ncol(new_bacteria)-2)] * fitness_costs)
       new_bacteria[i,"freq"] = new_bacteria[i,"freq"] +
-        round(bacteria[i,"freq"] * growth_rate * (1 - sum(bacteria[,"freq"])/Nmax))
+        round(bacteria[i,"freq"] * (1 - fitness_cost_i) * growth_rate * (1 - sum(bacteria[,"freq"])/Nmax))
       
     }
     
@@ -183,41 +191,34 @@ function <- piglet_mrsa_movement(times, parameters){
   }
   all_results_out <- all_results # store to check later
   
-  #clean up and plot
+  # Last MGE prevalence
+  MGE_prevalence = bacteria[,c(1:10)]*bacteria[,"freq"]
+  MGE_prevalence = colsums(MGE_prevalence)/tot_bacteria
+  all_mge_prev[times,] = MGE_prevalence
+  
+  #clean up 
   all_results = as.data.frame(all_results_out)
   all_results$time = c(1:nrow(all_results))
-  
   all_results = melt(all_results, id.vars = "time")
-  all_results$parent = c(rep(1, nrow(bacteria)/2), rep(2, nrow(bacteria)/2))
-  
-  ### Want prevalence of each MGE at sampled time points
-  # need to include "bacteria" matrix here - currently only got the number of each profile (variable) - need to convert this to the number of each MGE
-  
-  all_results %>% 
-    filter(time %in% c(4,48,96,288,384)) %>% group_by(time, parent) %>% 
-    mutate(total = sum(value)) %>% group_by(time, parent, variable) %>% 
-    mutate(nbugs_with = value / total) %>% 
-    summarise(nbugs_with_total = sum(nbugs_with), total = min(total), # min here but could be max or anything - just need to move total into summary
-              prev = ifelse(nbugs_with_total == 0, 0, nbugs_with_total / total),.groups = "drop") %>%
-    select(time,name,prev) %>% mutate(parent = 1)
-  
-  qnew <-  Q_all %>% pivot_longer(cols = c("SCCmec":"p4")) %>% 
-    filter(time %in% c(4,48,96,288,384)) %>% group_by(time) %>% 
-    mutate(total = sum(freq)/10) %>% group_by(time, name) %>% # /10 for total as 10 elements
-    mutate(nbugs_with = value * freq) %>% 
-    summarise(nbugs_with_total = sum(nbugs_with), total = min(total), # min here but could be max or anything - just need to move total into summary
-              prev = ifelse(nbugs_with_total == 0, 0, nbugs_with_total / total),.groups = "drop") %>%
-    select(time,name,prev) %>% mutate(parent = 2)
+  all_results$parent = c(rep(1, times * nrow(bacteria)/2), rep(2, times * nrow(bacteria)/2))
   
   # Totals - want prevalence of each parent strains
   totl_predict<- all_results %>% select(time,value, parent) %>%
     filter(time %in% c(4,48,96,288,384)) %>% group_by(time, parent) %>% 
-    summarise(total = sum(value),.groups = "drop") %>% mutate(parent = 1)
+    summarise(total = sum(value),.groups = "drop") 
   
-  # to match data
-  prev_predict <- rbind(pnew,qnew)
-  totl_predict <- rbind(ptotals, qtotals)
+  # Prevalence of MGE at same time as data
+  #clean up MGE
+  all_mge_prev = as.data.frame(all_mge_prev)
+  all_mge_prev$time = c(1:nrow(all_mge_prev))
+  all_mge_prev = melt(all_mge_prev, id.vars = "time")
+  
+  prev_predict <- all_mge_prev %>% 
+    filter(time %in% c(4,48,96,288,384))
   
   # Output
   return(list(all_results = all_results, 
               prev_predict = prev_predict, totl_predict = totl_predict))
+}
+
+piglet_mrsa_movement(384, theta)
