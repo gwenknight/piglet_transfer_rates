@@ -7,7 +7,7 @@ library(coda)
 
 ### Data 
 data <- read.csv("data/data_to_fit.csv")[,-1] 
-data_6 <- data %>% filter(name %in% c("phi6","phi2","p1","p2","p3","p4"))
+data_6 <- data %>% filter(variable %in% c("V2","V5","V6","V7","V8","V10"))
 
 ### Likelihood 
 dist_like <- read.csv("data/seen_predicted.csv")[,-1]
@@ -17,7 +17,7 @@ totals <- read.csv("data/totals_bug.csv")[,-1] %>% select(time,value, parent, li
   pivot_wider(names_from = lim) %>% mutate(weight = 1/(max - min))
 
 ### Functions
-source("code/functions.R")
+source("code/piglet_mrsa_functions.R")
 source("code/mcmcmh.r") # had to change line172
 
 ## Phage same, plasmids same 
