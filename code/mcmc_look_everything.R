@@ -14,7 +14,7 @@ source("code/piglet_mrsa_functions.R")
 source("code/mcmcmh.r") # had to change line172
 
 ### CHANGE
-filename <- "2021-12-16_03-12-04_GMT"
+filename <- "2021-12-16_21-11-08_GMT"
 mcmc.epi_every <- c()
 mcmc.epi_every$trace <- read.csv(here::here("fits/everything",paste0(filename,"_","trace",".csv")))[,-1]
 mcmc.epi_every$acceptance.rate <- read.csv(here::here("fits/everything",paste0(filename,"_","acceptance_rates",".csv")))
@@ -23,7 +23,7 @@ mcmc.epi_every$covmat.empirical <- read.csv(here::here("fits/everything",paste0(
 
 
 # # # Look at output
-mcmc.trace <- mcmc(mcmc.epi_every$trace)
+mcmc.trace <- mcmc(mcmc.epi_every$trace[1:3000,])
 summary(mcmc.trace)
 acceptanceRate <- 1 - rejectionRate(mcmc.trace)
 acceptanceRate

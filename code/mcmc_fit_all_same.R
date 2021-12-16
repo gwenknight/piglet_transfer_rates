@@ -38,16 +38,19 @@ c(mu = 0.751744625832429, gamma = 2.0345341340617, f = 0.0215217218291819,
 # git 15/12 - v different! 
 c(mu = 3.83421041070614, gamma = 2.49493900039174, f = 0.00256323172862037, 
   grow = 1.39538895651162)
+# git 16/12... different! 
+c(mu = 7.39321304677893, gamma = 4.97587843591996, f = 0.0468519521473987, 
+  grow = 1.51505386607615)
 
 lower.p <- init.theta
 lower.p[] <- 0
 
 mcmc.epi3_79 <- mcmcMH(target = run_sim_logPosterior,
                     limits=list(lower = lower.p),
-                    init.theta =  c(mu = 3.83421041070614, gamma = 2.49493900039174, f = 0.00256323172862037, 
-                                    grow = 1.39538895651162),
+                    init.theta =  c(mu = 7.39321304677893, gamma = 4.97587843591996, f = 0.0468519521473987, 
+                                     grow = 1.51505386607615),
                     proposal.sd = c(rep(0.005,3), 0.005),
-                    n.iterations = 2500,
+                    n.iterations = 2000,
                     adapt.size.start = 100,
                     adapt.shape.start = 500,
                     adapt.size.cooling=0.999, 
