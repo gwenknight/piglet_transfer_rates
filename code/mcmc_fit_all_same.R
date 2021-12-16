@@ -26,7 +26,7 @@ source("code/piglet_mrsa_functions.R")
 source("code/mcmcmh.r") # had to change line172
 
 ## All same
-#init.theta = c(mu = 0.7953883, gamma = 1.963830, f = 0.003424697, grow = 1.436710)
+init.theta = c(mu = 0.7953883, gamma = 1.963830, f = 0.003424697, grow = 1.436710)
 #init.theta = c(mu = 4.58960662274629, gamma = 0.774851268517529, f = 0.000899333599447348, 
 #               grow = 1.39733915676241)
 # v different to above! 
