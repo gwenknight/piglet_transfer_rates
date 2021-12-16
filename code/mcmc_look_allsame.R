@@ -14,7 +14,7 @@ source("code/piglet_mrsa_functions.R")
 source("code/mcmcmh.r") # had to change line172
 
 ### CHANGE
-filename <- "2021-12-15_19-35-06_GMT"
+filename <- "2021-12-16_01-29-02_GMT"
 mcmc.epi_every <- c()
 mcmc.epi_every$trace <- read.csv(here::here("fits/all_same",paste0(filename,"_","trace",".csv")))[,-1]
 mcmc.epi_every$acceptance.rate <- read.csv(here::here("fits/all_same",paste0(filename,"_","acceptance_rates",".csv")))
@@ -29,9 +29,10 @@ acceptanceRate <- 1 - rejectionRate(mcmc.trace)
 acceptanceRate
 plot(mcmc.trace)
 effectiveSize(mcmc.trace)
+mcmc.epi_every$covmat.empirical
 
 
-mcmc.trace.burned <- burnAndThin(mcmc.trace, burn = 100)
+mcmc.trace.burned <- burnAndThin(mcmc.trace, burn = 500)
 plot(mcmc.trace.burned)
 
 autocorr.plot(mcmc.trace.burned)
@@ -83,8 +84,6 @@ if(!is.null(out$prev_predict)){
   #### Compare to data 
   compare_dat <- likelihood_lookup_elements + likelihood_lookup_totals
 }else{compare_dat <- -Inf}
-# return log likelihood
-as.numeric(compare_dat)
 
 # return log likelihood
 compare_dat #### - 718 for mock data

@@ -14,7 +14,7 @@ source("code/piglet_mrsa_functions.R")
 source("code/mcmcmh.r") # had to change line172
 
 ### CHANGE
-filename <- "2021-12-15_16-57-51_GMT"
+filename <- "2021-12-16_03-12-04_GMT"
 mcmc.epi_every <- c()
 mcmc.epi_every$trace <- read.csv(here::here("fits/everything",paste0(filename,"_","trace",".csv")))[,-1]
 mcmc.epi_every$acceptance.rate <- read.csv(here::here("fits/everything",paste0(filename,"_","acceptance_rates",".csv")))
@@ -30,8 +30,9 @@ acceptanceRate
 plot(mcmc.trace)
 effectiveSize(mcmc.trace)
 
+mcmc.epi_every$covmat.empirical
 
-mcmc.trace.burned <- burnAndThin(mcmc.trace, burn = 100)
+mcmc.trace.burned <- burnAndThin(mcmc.trace, burn = 2000)
 plot(mcmc.trace.burned)
 
 autocorr.plot(mcmc.trace.burned)
@@ -114,3 +115,5 @@ g2 <- ggplot(totalsp, aes(x=time, y = value, group = interaction(time,name,paren
 
 g1 / g2
 ggsave(here::here("fits/everything/",paste0(filename,"_","fit",".pdf")))
+
+dput(mcmc.trace[nrow(mcmc.trace),1:(ncol(mcmc.trace)-1)])
