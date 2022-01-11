@@ -1,29 +1,38 @@
-### Look at output everything
+#### mcmc_everything
+# Join chains together
 
-library(tmvtnorm)
-library(tidyverse)
-library(here)
-library(coda)
-library(ggplot2)
-library(scales)
-library(reshape2)
-library(dplyr)
-library(Rfast)
-library(patchwork)
-source("code/piglet_mrsa_functions.R")
-source("code/mcmcmh.r") # had to change line172
+f1 <- "2021-12-16_23-38-55_GMT"
+f2 <- "2021-12-16_19-47-33_GMT"
+f3 <- "2021-12-16_21-11-08_GMT"
+#f4 <- "2021-12-16_08-14-05_GMT"
+f5 <- "2021-12-16_03-12-04_GMT"
 
-### CHANGE
-filename <- "2021-12-16_23-38-55_GMT"
+
 mcmc.epi_every <- c()
-mcmc.epi_every$trace <- read.csv(here::here("fits/everything",paste0(filename,"_","trace",".csv")))[,-1]
-mcmc.epi_every$acceptance.rate <- read.csv(here::here("fits/everything",paste0(filename,"_","acceptance_rates",".csv")))
-mcmc.epi_every$covmat.empirical <- read.csv(here::here("fits/everything",paste0(filename,"_","covmat",".csv")))
+t1 <- read.csv(here::here("fits/everything",paste0(f1,"_","trace",".csv")))[,-1]
+t2 <- read.csv(here::here("fits/everything",paste0(f2,"_","trace",".csv")))[,-1]
+t3 <- read.csv(here::here("fits/everything",paste0(f3,"_","trace",".csv")))[1:5000,-1] # gets stuck
+#t4 <- read.csv(here::here("fits/everything",paste0(f4,"_","trace",".csv")))[,-1]
+t5 <- read.csv(here::here("fits/everything",paste0(f5,"_","trace",".csv")))[,-1]
+
+t12 <- rbind(t1,t2)
+t123 <- rbind(t12, t3)
+#t1234 <- rbind(t123, t4)
+mcmc.epi_every$trace <- rbind(t123, t5)
+
+
+mcmc.epi_every$acceptance.rate <- rbind(c(read.csv(here::here("fits/everything",paste0(f1,"_","acceptance_rates",".csv"))),
+                                          read.csv(here::here("fits/everything",paste0(f2,"_","acceptance_rates",".csv"))),
+                                          read.csv(here::here("fits/everything",paste0(f3,"_","acceptance_rates",".csv")))))
+mcmc.epi_every$covmat.empirical <- rbind(c(read.csv(here::here("fits/everything",paste0(f1,"_","covmat",".csv"))),
+                                           read.csv(here::here("fits/everything",paste0(f2,"_","covmat",".csv"))),
+                                           read.csv(here::here("fits/everything",paste0(f3,"_","covmat",".csv")))))
+
 
 
 
 # # # Look at output
-mcmc.trace <- mcmc(mcmc.epi_every$trace[1:3000,])
+mcmc.trace <- mcmc(mcmc.epi_every$trace)
 summary(mcmc.trace)
 acceptanceRate <- 1 - rejectionRate(mcmc.trace)
 acceptanceRate

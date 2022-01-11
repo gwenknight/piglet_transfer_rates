@@ -103,10 +103,11 @@ names(theta_fit1)<-names(theta)
 tsteps = 384
 
 ### theta same for all 
-theta = c(mu = 0.1, gamma = 0.1, f = 0.01, grow = 0.1)
+theta = c(mu = 0.1, gamma = 0.1, f = 0, grow = 0.1)
 
 ## Run for these parameters
 out <- run_sim(tsteps, theta)
+
 max(out$P_all$time)
 out$error
 

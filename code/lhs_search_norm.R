@@ -26,16 +26,21 @@ mu_mean = mean(init.theta[c("mu2","mu5","mu6","mu7","mu8","mu10")])
 gamma_mean = mean(init.theta[c("gamma2","gamma5","gamma6","gamma7","gamma8","gamma10")])
 f_mean = mean(init.theta[c("f2","f5","f6","f7","f8","f10")])
 
+mu_sd = sd(init.theta[c("mu2","mu5","mu6","mu7","mu8","mu10")])
+gamma_sd = sd(init.theta[c("gamma2","gamma5","gamma6","gamma7","gamma8","gamma10")])
+f_sd = sd(init.theta[c("f2","f5","f6","f7","f8","f10")])
+
+
 #Parameter ranges for LHS;
 
-param_ranges <- as.data.frame(cbind(c(rep(0.0000001,10),
-                                      rep(0.000000001,10),
-                                      rep(0.0001,10),
-                                      0),
-                                    c(rep(0.0001,10),
-                                      rep(0.001,10),
-                                      rep(0.5,10),
-                                      0.15)))
+param_ranges <- as.data.frame(cbind(c(rep(mu_mean,10),
+                                      rep(gamma_mean,10),
+                                      rep(f_mean,10),
+                                      init.theta["grow"]),
+                                    c(rep(mu_sd,10),
+                                      rep(gamma_sd,10),
+                                      rep(f_sd,10),
+                                      init.theta["grow"]/3)))
 colnames(param_ranges) <- c("min","max")
 
 # ##### NO FITNESS COST
@@ -76,9 +81,9 @@ X <- randomLHS(nsamples, nparameters) # first = number of samples, 1000 maybe? s
 Y <- matrix(0, nrow=nsamples, ncol=nparameters)
 # Assume parameters uniformly arranged over the range (could assume normal etc if have evidence...)
 for(ii in 1:nparameters){
-  Y[,ii] <- qunif(X[,ii], min = param_ranges[ii,1], max = param_ranges[ii,2])
+  Y[,ii] <- qnorm(X[,ii], mean = param_ranges[ii,1], sd = param_ranges[ii,2])
 }
-write.csv(Y, "fits/paraset.csv")
+write.csv(Y, "fits/0401/paraset.csv")
 
 #store_para <- c() # which samples are good?
 
@@ -111,7 +116,7 @@ for(ii in 1:nsamples){
   tsteps = 16 * 24
   
   ## Run
-  print(Y[ii,])
+  #print(Y[ii,])
   #out <- run_sim(tsteps, c(mu_here, gamma_here, growth_here, grate_here))
   out <- run_sim(tsteps, parameters)
   
