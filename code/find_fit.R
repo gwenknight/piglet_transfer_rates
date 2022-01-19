@@ -76,11 +76,9 @@ theta_fit = c(0.0886372585286972,
 names(theta_fit) <- names
 
 ## All same
-#para <- 0.1215405 0.04811499 0.04409806 0.09738901
-gain_all <- 0.1215405
-gamma_all <- 0.04811499
-fitness_all <- 0.04409806
-
+gain_all <- 0.005
+gamma_all <- 0.003
+fitness_all <- 0.0005
 
 theta = c(# gain
   mu2 = gain_all, mu5 = gain_all,
@@ -91,7 +89,7 @@ theta = c(# gain
   # fitness
   f2 = fitness_all,f5 = fitness_all,
   f6 = fitness_all,f7 = fitness_all,f8 = fitness_all,f10 = fitness_all,
-  grow = 0.09738901)
+  grow = 0.05)
 
 
 theta_fit1 <- c(0.0902391342190606,0.0955462697865904,0.106214814356656,0.0320580334507821,0.053400872560795,
@@ -103,16 +101,15 @@ names(theta_fit1)<-names(theta)
 tsteps = 384
 
 ### theta same for all 
-theta = c(mu = 0.1, gamma = 0.1, f = 0, grow = 0.1)
+theta = c(mu = 0.08, gamma = 0.09, f = 0.003, grow = 0.1)
 
 ## Run for these parameters
-out <- run_sim(tsteps, theta)
-
+out <- run_sim(tsteps, theta_fit1)
 max(out$P_all$time)
 out$error
 
-out$P_all %>% filter(time == 29) %>% arrange(desc(freq))
-out$Q_all %>% filter(time == 25) %>% arrange(desc(freq))
+out$P_all %>% filter(time == 49) %>% arrange(desc(freq))
+out$Q_all %>% filter(time == 49) %>% arrange(desc(freq))
 
 if(max(out$P_all$time)==tsteps){ # if get to end 
   #### element prevalence from model 

@@ -46,7 +46,7 @@ tail(mcmc.trace)
 parameters_every <- mcmc.trace[nrow(mcmc.trace),1:(ncol(mcmc.trace)-1)]
 
 ## Run for these parameters
-out <- piglet_mrsa_movement(tsteps, parameters_every)
+out <- piglet_mrsa_movement(tsteps, parameters_every, ini$bacteria, ini$difference_list)
 
 ### Data
 data <- read.csv("data/data_to_fit.csv")[,-1]
@@ -116,3 +116,4 @@ g1 / g2
 ggsave(here::here("fits/phage_plasmid/",paste0(filename,"_","fit",".pdf")))
 
 dput(mcmc.trace[nrow(mcmc.trace),1:(ncol(mcmc.trace)-1)])
+

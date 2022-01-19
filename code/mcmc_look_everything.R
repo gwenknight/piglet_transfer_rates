@@ -23,7 +23,7 @@ mcmc.epi_every$covmat.empirical <- read.csv(here::here("fits/everything",paste0(
 
 
 # # # Look at output
-mcmc.trace <- mcmc(mcmc.epi_every$trace[1:3000,])
+mcmc.trace <- mcmc(mcmc.epi_every$trace)
 summary(mcmc.trace)
 acceptanceRate <- 1 - rejectionRate(mcmc.trace)
 acceptanceRate
@@ -46,8 +46,12 @@ tail(mcmc.trace)
 # #### Fit 15th Dec
 parameters_every <- mcmc.trace[nrow(mcmc.trace),1:(ncol(mcmc.trace)-1)]
 
+### Try to improve for p4
+parameters_every["mu10"] = 0.3
+parameters_every["gamma10"] = 0.00000001
 ## Run for these parameters
-out <- piglet_mrsa_movement(tsteps, parameters_every)
+ini <- initial_piglet_setup(384)
+out <- piglet_mrsa_movement(tsteps, parameters_every, ini$bacteria, ini$difference_list)
 
 ### Data
 data <- read.csv("data/data_to_fit.csv")[,-1]

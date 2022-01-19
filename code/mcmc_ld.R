@@ -90,6 +90,7 @@ Fit <- LaplacesDemon(run_sim_model_ld, Data=PigData, Initial.Values,
 Initial.Values = c(mu = 0.1, gamma = 0.1, grow = 0.1)
 
 PigData$parm <- names(Initial.Values)
+PigData$parm.names <- names(Initial.Values)
 
 Fit <- LaplacesDemon(run_sim_model_ld, Data=PigData, Initial.Values,
                      Covar=NULL, Iterations=1000, Status=100, Thinning=1,
