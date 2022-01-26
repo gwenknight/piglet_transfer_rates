@@ -54,7 +54,7 @@ Initial.Values = c(mu = 0.01,
 ### Try 
 
 out_final <- fmcmc::MCMC(
-  initial   = out,                       # Automatically takes the last 2 points
+  initial   = Initial.Values,                       # Automatically takes the last 2 points
   fun       = run_sim_logPosterior, 
   nsteps    = 5e3,                       # Increasing the sample size
   kernel    = kernel_normal(scale = .000000000000001),
