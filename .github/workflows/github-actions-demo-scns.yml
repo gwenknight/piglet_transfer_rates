@@ -45,7 +45,7 @@ jobs:
       # Run the analysis script
       - name: Run R script
         run: |
-          source(here::here("code", "mcmc_fit_all_same.R"))
+          source(here::here("code", "mcmc_scn1_cluster.R"))
         shell: Rscript {0}
 
       # Save the results by pushing them back to the repository
