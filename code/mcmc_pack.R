@@ -100,14 +100,37 @@ ans_2nd3000 <- MCMC(
 
 
 
-###### Jan 18th
-Initial.Values = c(mu2 = 0.265289370464156, mu5 = 0.130932829264206, mu6 = 2.58577755844879, 
-                   mu7 = 0.481693463586813, mu8 = 3.65375125367999, mu10 = 10000, 
-                   gamma2 = 2, gamma5 = 1.11892206012185, gamma6 = 3.75164109872491, 
-                   gamma7 = 2, gamma8 = 0.240601848692034, gamma10 = 2.51037647414252, 
-                   f2 = 0.010, f5 = 0.01, f6 = 0.03, 
-                   f7 = 0.0402, f8 = 0.03, f10 = 0.32, 
-                   grow = 1, rel_fit = 0.9)
+###### Jan 19th
+Initial.Values = c(mu2 = 0.0000265289370464156, mu5 = 0.000000130932829264206, mu6 = 0.01, 
+                   mu7 = 0.00000481693463586813, mu8 = 0.01, mu10 = 0.005, 
+                   gamma2 = 0.00001, gamma5 = 0.000001, gamma6 = 0.00000000001, 
+                   gamma7 = 0.000001, gamma8 = 0.00000001, gamma10 = 0.000000000001, 
+                   f2 = -0.3, f5 = -0.3, f6 = 0.9, 
+                   f7 = -0.2, f8 = 0.3, f10 = 0.8, 
+                   grow = 0.15, rel_fit = 1)
+
+ans <- MCMC(run_sim_logPosterior, 
+            initial = Initial.Values, 
+            nsteps = 10000, 
+            kernel  = kernel_adapt(
+              lb = c(rep(1e-12, 12), rep(-1,6), 0.01, 0),
+              ub = c(rep(0.01, 6),rep(1,6), rep(1,6), 2.935, 1), # Gain maximum 1 as relative proportion of contacts
+            ))
+plot(ans)
+summary(ans)
+
+
+
+ans2 <- MCMC(run_sim_logPosterior, 
+            initial = ans, 
+            nsteps = 10000, 
+            kernel  = kernel_adapt(
+              lb = c(rep(0, 12), rep(-1,6), 0.5, 0),
+              ub = c(rep(10, 6),rep(1,6), rep(0.1,6), 2.935, 1), # Gain maximum 1 as relative proportion of contacts
+            ))
+plot(ans2)
+summary(ans2)
+
 
 ans <- MCMC(
   run_sim_logPosterior, 
@@ -120,3 +143,38 @@ ans <- MCMC(
   nchains = 3,
   conv_checker = convergence_gelman(200) # Checking for conv. every 200 steps
 )
+
+
+
+##### friday 21st
+library(adaptMCMC)
+samp <- MCMC(run_sim_logPosterior, 
+             n=100, 
+             init=Initial.Values, 
+             scale=c(rep(0.00000000000001,12), rep(0.000000000001,8)),
+             adapt=TRUE, 
+             acc.rate=0.234)
+
+samp.coda <- convert.to.coda(samp)
+class(samp.coda)
+## ----------------------
+## use functions of package 'coda'
+require(coda)
+plot(samp.coda)
+cumuplot(samp.coda)
+
+
+
+samp_lots <- MCMC(run_sim_logPosterior, 
+             n=10000, 
+             init=Initial.Values, 
+             scale=c(rep(0.0000000000000001,12), rep(0.00000000000001,8)),
+             adapt=TRUE, 
+             acc.rate=0.234)
+
+samp.coda_lots <- convert.to.coda(samp_lots)
+write.csv(samp.coda_lots,"fits/220125_10000_samp_all.csv")
+plot(samp.coda_lots)
+cumuplot(samp.coda_lots)
+
+

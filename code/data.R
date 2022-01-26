@@ -66,22 +66,24 @@ p1data <- as.data.frame(rbind(c(1,1,1,1,1,1,1,1,1,1,0,0,10000,0),
                               c(1,2,0,0,0,0,0,0,0,0,1,0,0.20*t72,72),
                               c(1,2,0,1,0,0,0,0,1,0,1,0,0.05*t72,72),
                               c(1,2,0,0,0,0,0,0,1,0,1,0,0.20*t72,72),
+                              
                               c(1,2,0,0,0,0,1,0,0,0,1,0,0.30*t288,288),
                               c(1,2,0,1,0,0,1,0,0,0,1,0,0.45*t288,288),
                               c(1,2,0,1,0,0,1,1,0,0,1,0,0.05*t288,288),
                               c(1,2,0,0,0,0,0,0,0,0,1,0,0.10*t288,288),
                               c(1,2,0,1,0,0,0,0,0,0,1,0,0.10*t288,288),
-                              c(1,2,0,1,0,0,1,1,0,0,1,0,0.10*t384,384),
-                              c(1,2,0,1,0,0,1,0,0,0,1,0,0.10*t384,384),
-                              c(1,2,0,1,0,0,0,1,0,0,1,0,0.10*t384,384),
-                              c(1,2,0,0,0,0,1,1,0,0,1,0,0.10*t384,384),
-                              c(1,2,0,1,0,0,0,0,0,0,1,0,0.10*t384,384)))
+                              
+                              c(1,2,0,1,0,0,1,0,1,0,1,0,0.45*t384,384),
+                              c(1,2,0,1,0,0,1,0,0,0,1,0,0.25*t384,384),
+                              c(1,2,0,1,0,0,0,0,1,0,1,0,0.10*t384,384),
+                              c(1,2,0,0,0,0,1,0,1,0,1,0,0.05*t384,384),
+                              c(1,2,0,1,0,0,0,0,0,0,1,0,0.15*t384,384)))
 
 
 p2data <-  as.data.frame(rbind(c(2,1,1,1,1,1,1,1,1,1,0,0,10000,0),
                                c(2,1,1,1,1,1,1,1,1,1,0,0,0.75*t4,4),
                                c(2,1,1,1,1,1,1,1,1,0,0,0,0.05*t4,4),
-                               c(2,1,1,1,1,1,1,0,0,0,0,0,0.30*t4,4),
+                               c(2,1,1,1,1,1,1,0,0,0,0,0,0.20*t4,4),
                                c(2,1,1,1,1,1,1,1,1,1,0,0,t48,48),
                                c(2,1,1,1,1,1,1,1,1,1,0,0,t72,72),
                                c(2,1,1,1,1,1,1,1,1,1,0,0,0.2*t288,288),
@@ -176,6 +178,10 @@ colnames(p4data)<- c("pig","parent_strain","v1","v2","v3","v4","v5","v6","v7","v
 pig_data <- rbind(p1data, p2data, p3data, p4data) %>% group_by(pig, parent_strain, time) %>% 
   arrange(time, -freq) %>% mutate(total = sum(freq), prop = freq / total, value = 1, profile = cumsum(value)) %>% select(-value)
 
+# Check 
+pig_data %>% group_by(pig, time, parent_strain) %>% summarise(s = sum(prop)) %>% filter(!s == 1) # should all == 1
+# Error in pig2, time 4 = 20% not 30%? 
+
 pig_data$parent = 0
 for(i in 1:dim(pig_data)[1]){
   if(pig_data[i,"parent_strain"] == 1){
@@ -226,10 +232,10 @@ pigg_plotp$profile = factor(pigg_plotp$profile, levels=seq(mm,1,-1)) # reorder p
 pigg_plotp$perc <- paste0(100 * signif(pigg_plotp$prop,2),"%")
 pigg_plotq$perc <- paste0(100 * signif(pigg_plotq$prop,2),"%")
 
-gp <- ggplot(pigg_plotp, aes(x0=x_centre, y0 = y_centre, group = profile)) + geom_circle(aes(r = minir, col= label, fill  = label)) + 
+gp <- ggplot(pigg_plotp, aes(x0=x_centre, y0 = y_centre, group = profile_number)) + geom_circle(aes(r = minir, col= label, fill  = label)) + 
   geom_circle(aes(x0 = x_centrebig, y0 = y_centrebig, r = bigr)) + 
   geom_text(aes(x = 5, y = 6.5, label = perc)) +
-  facet_grid(pig + time ~ profile) + 
+  facet_grid(pig + time ~ profile_number) + 
   scale_fill_manual("MGE",breaks= c("0","v1","v2","v3","v4","v5","v6","v7","v8","v9","v10"), 
                     values = c("white","#66C2A5", "#FC8D62", "#8DA0CB", "#E78AC3", "#A6D854", "#FFD92F","#984EA3", "#FF7F00","#E41A1C","#377EB8"),drop = FALSE)+ 
   scale_color_manual("MGE",breaks= c("0","v1","v2","v3","v4","v5","v6","v7","v8","v9","v10"), 
@@ -260,6 +266,27 @@ gq <- ggplot(pigg_plotq, aes(x0=x_centre, y0 = y_centre, group = profile)) + geo
 gp +  gq + plot_layout(guides = 'collect') +
  plot_layout(widths = c(1, 2))
 ggsave("plots/data_pig.pdf", width = 45, height = 25)
+
+### TOGETHER
+pigg_plotp$profile <- as.numeric(pigg_plotp$profile)
+pigg_plot <- rbind(pigg_plotp, pigg_plotq)
+pigg_plot$joint_profile <- paste(pigg_plot$parent_strain,pigg_plot$profile,sep = ".")
+gt <- ggplot(pigg_plot, aes(x0=x_centre, y0 = y_centre, group = joint_profile))+ geom_circle(aes(r = minir, col= label, fill  = label)) + 
+  geom_circle(aes(x0 = x_centrebig, y0 = y_centrebig, r = bigr)) + 
+  geom_text(aes(x = 5, y = 6.5, label = perc)) +
+  facet_grid(pig + parent_strain + time ~ joint_profile) + 
+  scale_fill_manual("MGE",breaks= c("0","v1","v2","v3","v4","v5","v6","v7","v8","v9","v10"), 
+                    values = c("white","#66C2A5", "#FC8D62", "#8DA0CB", "#E78AC3", "#A6D854", "#FFD92F","#984EA3", "#FF7F00","#E41A1C","#377EB8"),drop = FALSE)+ 
+  scale_color_manual("MGE",breaks= c("0","v1","v2","v3","v4","v5","v6","v7","v8","v9","v10"), 
+                     values = c("white","#66C2A5", "#FC8D62", "#8DA0CB", "#E78AC3", "#A6D854", "#FFD92F","#984EA3", "#FF7F00","#E41A1C","#377EB8"),drop = FALSE) + 
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank())
+
+
 
 ####### Number of profiles over time
 profile_o_time = pig_data %>% select(pig, time, profile_number) %>%
@@ -298,6 +325,15 @@ ggplot(pig_data, aes(x=time, y = freq, group = interaction(pig,parent_strain,lab
   facet_wrap(~parent_strain)
 ggsave("plots/labels_over_time.pdf")
 
+ggplot(pig_data, aes(x=time, y = prop, group = interaction(pig,parent_strain,label))) + 
+  geom_line(aes(col = factor(pig))) + 
+  facet_wrap(label~parent_strain) + 
+  geom_hline(yintercept = 0.05)
+
+pig_data %>% filter(time == 384, prop > 0.1) %>% ungroup() %>% group_by(parent_strain, pig) %>% summarise(unique(label))
+pig_data %>% filter(time == 384, prop > 0.1, parent_strain == 2) %>% ungroup() %>% arrange(desc(label)) %>% group_by(label) %>% mutate(n = n(), ave = mean(prop), min = min(prop))
+ggsave("plots/labels_over_time.pdf")
+
 ###### Elements over time
 pigg_elements <- pigg_plot %>% group_by(pig, parent_strain, time, name) %>% mutate(prop_mge = value * prop) %>% summarise(sum_prop = sum(prop_mge))
 
@@ -327,12 +363,12 @@ write.csv(pigg_elements, "data/pigg_elements.csv")
 
 
 ##################################################################################### Totals of bug ####################################################################################################
-time <- c(4,48,72,288,384)
+time <- c(4,48,96,288,384)
 ## Not modelling any death rate - just net growth as constant... so keep final time point flat
-total_p1_min <- c(50, 10^5, 10^6, 10^6, 10^6)
-total_p1_max <- c(3000, 10^6, 10^8, 10^7, 10^7)
-total_p2_min <- c(1000, 10^5, 10^6, 10^6, 10^6)
-total_p2_max <- c(3000, 10^6, 10^8, 10^7, 10^7)
+total_p1_min <- c(50, 10^4, 10^5, 10^5, 10^5)
+total_p1_max <- c(10^4, 10^6, 10^8, 10^8, 10^8)
+total_p2_min <- c(50, 10^4, 10^5, 10^5, 10^5)
+total_p2_max <- c(10^4, 10^6, 10^8, 10^8, 10^8)
 
 totals <- as.data.frame(cbind(time, total_p1_min, total_p1_max, total_p2_min, total_p2_max)) %>% 
   pivot_longer(cols = total_p1_min:total_p2_max)
