@@ -56,7 +56,7 @@ Initial.Values = c(mu = 0.01,
 out_final <- fmcmc::MCMC(
   initial   = out,                       # Automatically takes the last 2 points
   fun       = run_sim_logPosterior, 
-  nsteps    = 10,                       # Increasing the sample size
+  nsteps    = 5e3,                       # Increasing the sample size
   kernel    = kernel_normal(scale = .000000000000001),
   thin      = 10
 )
@@ -65,6 +65,6 @@ out_final <- fmcmc::MCMC(
 filename = gsub(c(" "), "_", format(as.POSIXct(Sys.time()), tz = "Europe/London", usetz = TRUE))
 filename = gsub(":", "-", filename)
 
-write.csv(out_final, here::here("fits/",paste0(filename,"_","trace",".csv")))
+write.csv(out_final, here::here("fits/",paste0("scn1_",filename,"_","trace",".csv")))
 
 
