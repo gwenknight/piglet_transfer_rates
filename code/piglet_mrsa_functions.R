@@ -399,8 +399,12 @@ piglet_mrsa_movement <- function(tsteps, parameters_in, bacteria, difference_lis
       #(remember first 10 columns are the MGE profiles)
       MGE_prevalence = bacteria[,c(1:10)]*bacteria[,"freq"]
       MGE_prevalence_all = colsums(MGE_prevalence)/tot_bacteria
-      MGE_prevalence_1 = colsums(MGE_prevalence[1:nrow(bacteria)/2,])/sum(bacteria[1:nrow(bacteria)/2,"freq"]) # just in parent 1
-      MGE_prevalence_2 = colsums(MGE_prevalence[(1+nrow(bacteria)/2):nrow(bacteria),])/sum(bacteria[(1+nrow(bacteria)/2):nrow(bacteria),"freq"]) # just in parent 2
+      #MGE_prevalence_1 = colsums(MGE_prevalence[1:nrow(bacteria)/2,])/sum(bacteria[1:nrow(bacteria)/2,"freq"]) # just in parent 1
+      #MGE_prevalence_2 = colsums(MGE_prevalence[(1+nrow(bacteria)/2):nrow(bacteria),])/sum(bacteria[(1+nrow(bacteria)/2):nrow(bacteria),"freq"]) # just in parent 2
+      
+      if(sum(bacteria[1:nrow(bacteria)/2,"freq"]) > 0){ MGE_prevalence_1 = colsums(MGE_prevalence[1:nrow(bacteria)/2,])/sum(bacteria[1:nrow(bacteria)/2,"freq"])}else{MGE_prevalence_1 = rep(0,10)}  # just in parent 1
+      if(sum(bacteria[(1+nrow(bacteria)/2):nrow(bacteria),"freq"]) > 0){MGE_prevalence_2 = colsums(MGE_prevalence[(1+nrow(bacteria)/2):nrow(bacteria),])/sum(bacteria[(1+nrow(bacteria)/2):nrow(bacteria),"freq"])}else{MGE_prevalence_2=rep(0,10)} # just in parent 2
+      
       
       #Store MGE prev
       all_mge_prev[(t-1),] = MGE_prevalence_1
@@ -482,8 +486,8 @@ piglet_mrsa_movement <- function(tsteps, parameters_in, bacteria, difference_lis
     # Last MGE prevalence
     MGE_prevalence = bacteria[,c(1:10)]*bacteria[,"freq"]
     MGE_prevalence_all = colsums(MGE_prevalence)/tot_bacteria
-    MGE_prevalence_1 = colsums(MGE_prevalence[1:nrow(bacteria)/2,])/sum(bacteria[1:nrow(bacteria)/2,"freq"]) # just in parent 1
-    MGE_prevalence_2 = colsums(MGE_prevalence[(1+nrow(bacteria)/2):nrow(bacteria),])/sum(bacteria[(1+nrow(bacteria)/2):nrow(bacteria),"freq"]) # just in parent 2
+    if(sum(bacteria[1:nrow(bacteria)/2,"freq"]) > 0){ MGE_prevalence_1 = colsums(MGE_prevalence[1:nrow(bacteria)/2,])/sum(bacteria[1:nrow(bacteria)/2,"freq"])}else{MGE_prevalence_1 = rep(0,10)}  # just in parent 1
+    if(sum(bacteria[(1+nrow(bacteria)/2):nrow(bacteria),"freq"]) > 0){MGE_prevalence_2 = colsums(MGE_prevalence[(1+nrow(bacteria)/2):nrow(bacteria),])/sum(bacteria[(1+nrow(bacteria)/2):nrow(bacteria),"freq"])}else{MGE_prevalence_2=rep(0,10)} # just in parent 2
     
     #Store MGE prev
     all_mge_prev[(tsteps),] = MGE_prevalence_1
@@ -547,23 +551,41 @@ run_sim_logPosterior <- function(theta_in){
     #distributs %>% filter(name == "p1", parent == 1, n_colonies_prev == 0.9900) %>% summarise(sum(prob_all))
     
     # lookup the probability from this distribution for the data
-    likelihood_lookup_elements <- left_join(data_6, distributs, by = c("parent","time","variable","n_colonies_prev")) %>% summarise(sum(log(prob_all)))
+    likelihood_lookup_elements <- left_join(data_6, distributs, by = c("parent","time","variable","n_colonies_prev")) %>% 
+      mutate(exp_miss = dnorm(prob_all, 1, 0.1)) %>% # experimental measure - 10% around a prob of 1
+      summarise(sum(log(exp_miss))) #summarise(sum(log(prob_all)))
     
     #### total bugs output from model (b)
     model_outputt <- out$totl_predict
     
-    likelihood_lookup_totals <- left_join(model_outputt, totals, by = c("time", "parent")) %>% rowwise() %>% mutate(val_in = as.numeric(between(total,min,max))) %>%
-      as.data.frame() %>% mutate(likelihood = weight * val_in) %>% summarise(sum(log(likelihood)))
+    likelihood_lookup_totals <- left_join(model_outputt, totals, by = c("time", "parent")) %>% rowwise() %>% 
+      #mutate(val_in = as.numeric(between(total,min,max))) %>% # instead of 1 / 0 make distance 
+      mutate(val_in = dnorm(total, mean = (max - min)/2 - min, sd = 2 * (max - min))) %>% # instead of 1 / 0 make distance 
+      as.data.frame() %>% mutate(likelihood = val_in) %>% summarise(sum(log(likelihood)))
     
     #### ensure certain profiles present (c)
     total_end <- unlist(out$all_results %>% filter(time == tsteps) %>% group_by(parent) %>% summarise(total = sum(value)) %>%select(total))
     ## Need to be present at > 80% and > 20% for parent 1 and parent 2 respectively 
     profile_end <- out$all_results %>% filter(time == tsteps, variable %in% profiles_needed_end) 
-    if(nrow(profile_end) == 3){
-      likelihood_profile_end <- profile_end %>% 
-        mutate(prop = value / c(total_end[1],total_end[2],total_end[2]),
-               cutoff = pmax(0,prop - 0.05),#c(0.8,0.2,0.2)), # more the better # not using -- too strict
-               likelihood = log(prop)) %>% summarise(sum(likelihood))} else{likelihood_profile_end <- -Inf}
+    profile_end$variable <- as.numeric(profile_end$variable)
+    if(nrow(profile_end) == 3){prof_end <- profile_end$value}else{
+      prf_end <- as.data.frame(cbind(profiles_needed_end,c(0,0,0)));colnames(prf_end) <- c("variable","end") 
+      p <- left_join(prf_end, profile_end, by = "variable")
+      p[which(is.na(p$value)), "value"] <- 0
+      prof_end <- p$value
+    }
+    # If total_end = 0 then prof_end will be 0 too 
+    if(total_end[1]>0){ prof_end[1] <-  prof_end[1]/total_end[1]}
+    if(total_end[2]>0){ prof_end[2:3] <-  prof_end[2:3]/total_end[2]}
+    # Could change sd etc if not close enough 
+    likelihood_profile_end <- sum(log(dnorm(prof_end,mean = c(0.8,0.2,0.2), sd = 0.5)))
+    
+    # Don't make -Inf possible
+    # if(nrow(profile_end) == 3 && total_end[2] > 0){
+    #   likelihood_profile_end <- profile_end %>% 
+    #     mutate(prop = value / c(total_end[1],total_end[2],total_end[2]),
+    #            cutoff = pmax(0,prop - 0.05),#c(0.8,0.2,0.2)), # more the better # not using -- too strict
+    #            likelihood = log(prop)) %>% summarise(sum(likelihood))} else{likelihood_profile_end <- -Inf}
     
     #### Compare to data 
     compare_dat <- likelihood_lookup_elements + likelihood_lookup_totals + 10 * likelihood_profile_end # add in a 10* weight for profile_end as otherwise only a small contribution relatively
@@ -921,10 +943,8 @@ plot_circles <- function(profiles, output_data,plot_name){
   
   results <- output_data %>% filter(time %in% c(0,4,48,72,288,384), value > 0) %>% select(variable, value, parent, time)
   results$variable <- as.numeric(results$variable)
-  tot1 <- as.numeric(results %>% filter(parent == 1) %>% summarise(sum(value)))
-  tot2 <- as.numeric(results %>% filter(parent == 2) %>% summarise(sum(value)))
-  results <- results %>% mutate(tot = ifelse(parent == 1, tot1, tot2), 
-                     perc = 100 * value / tot)
+  tot <- results %>% group_by(parent, time) %>% summarise(tot = sum(value)) 
+  results <- left_join(results, tot, by = c("parent", "time")) %>% mutate(perc = 100 * value / tot)
   piggy_data <- left_join(results, bugs %>% select(-freq), by = c("variable", "parent")) %>% arrange(value)
   piggy_data$pig <- 1
   piggy_data <- rename(piggy_data, c("profile" = "variable","freq" = "value",
@@ -961,10 +981,10 @@ plot_circles <- function(profiles, output_data,plot_name){
   pigg_plotp$perc_lab <- paste0(signif(pigg_plotp$perc,2),"%")
   pigg_plotq$perc_lab <- paste0(signif(pigg_plotq$perc,2),"%")
   
-  gp <- ggplot(pigg_plotp %>% filter(perc > 1), aes(x0=x_centre, y0 = y_centre, group = profile)) + geom_circle(aes(r = minir, col= label, fill  = label)) + 
+  gp <- ggplot(pigg_plotp %>% filter(perc > 5), aes(x0=x_centre, y0 = y_centre, group = profile)) + geom_circle(aes(r = minir, col= label, fill  = label)) + 
     geom_circle(aes(x0 = x_centrebig, y0 = y_centrebig, r = bigr)) + 
     geom_text(aes(x = 5, y = 6.5, label = perc_lab)) +
-    facet_grid(time ~ profile) + 
+    facet_grid(time ~ profile + parent) + 
     scale_fill_manual("MGE",breaks= c("0","v1","v2","v3","v4","v5","v6","v7","v8","v9","v10"), 
                       values = c("white","#66C2A5", "#FC8D62", "#8DA0CB", "#E78AC3", "#A6D854", "#FFD92F","#984EA3", "#FF7F00","#E41A1C","#377EB8"),drop = FALSE)+ 
     scale_color_manual("MGE",breaks= c("0","v1","v2","v3","v4","v5","v6","v7","v8","v9","v10"), 
@@ -976,10 +996,10 @@ plot_circles <- function(profiles, output_data,plot_name){
           axis.text.y=element_blank(),
           axis.ticks.y=element_blank())
   
-  gq <- ggplot(pigg_plotq %>% filter(perc > 1), aes(x0=x_centre, y0 = y_centre, group = profile)) + geom_circle(aes(r = minir, col= label, fill  = label)) + 
+  gq <- ggplot(pigg_plotq %>% filter(perc > 5), aes(x0=x_centre, y0 = y_centre, group = profile)) + geom_circle(aes(r = minir, col= label, fill  = label)) + 
     geom_circle(aes(x0 = x_centrebig, y0 = y_centrebig, r = bigr)) + 
     geom_text(aes(x = 5, y = 6.5, label = perc_lab)) +
-    facet_grid(pig + time ~ profile + parent) + 
+    facet_grid(time ~ profile + parent) + 
     scale_fill_manual("MGE",breaks= c("0","v1","v2","v3","v4","v5","v6","v7","v8","v9","v10"), 
                       values = c("white","#66C2A5", "#FC8D62", "#8DA0CB", "#E78AC3", "#A6D854", "#FFD92F","#984EA3", "#FF7F00","#E41A1C","#377EB8"),drop = FALSE)+ 
     scale_color_manual("MGE",breaks= c("0","v1","v2","v3","v4","v5","v6","v7","v8","v9","v10"), 
@@ -995,4 +1015,75 @@ plot_circles <- function(profiles, output_data,plot_name){
   g <- gp +  gq + plot_layout(guides = 'collect') +
     plot_layout(widths = c(1, 1))
   ggsave(paste0("plots/",plot_name,".pdf"), width = 45, height = 25)
+}
+
+plot_time_series <- function(out, plot_name){
+  # out = all data from run 
+  # plot_name = where to plot
+  theme_set(theme_bw(base_size = 11))
+  preva = out$prev_predict
+  tots = out$totl_predict
+  ALL = out$all_results
+  
+  if(!is.null(preva)){
+    
+    #### element prevalence from model (a)
+    #c("SCCmec","phi6","SaPI","Tn916","phi2","p1","p2","p3","phi3","p4")
+    model_outputp <- preva %>% filter(variable %in% c("V2","V5","V6","V7","V8","V10"))
+    model_outputp$prev <- round(model_outputp$value,2)
+    
+    # Check what distribution of n_colonies at this prevalence in the model pig
+    distributs <- left_join(model_outputp, dist_like, by = "prev") %>% select(parent, time, variable, prob_all, n_colonies_prev)
+    # e.g. to check 
+    #distributs %>% filter(name == "p1", parent == 1, n_colonies_prev == 0.9900) %>% summarise(sum(prob_all))
+    
+    # lookup the probability from this distribution for the data
+    likelihood_lookup_elements <- left_join(data_6, distributs, by = c("parent","time","variable","n_colonies_prev")) %>% summarise(sum(log(prob_all)))
+    
+    #### total bugs output from model (b)
+    model_outputt <- tots
+    
+    likelihood_lookup_totals <- left_join(model_outputt, totals, by = c("time", "parent")) %>% rowwise() %>% mutate(val_in = as.numeric(between(total,min,max))) %>%
+      as.data.frame() %>% mutate(likelihood = weight * val_in) %>% summarise(sum(log(likelihood)))
+    
+    #### ensure certain profiles present (c)
+    total_end <- unlist(ALL %>% filter(time == tsteps) %>% group_by(parent) %>% summarise(total = sum(value)) %>%select(total))
+    ## Need to be present at > 80% and > 20% for parent 1 and parent 2 respectively 
+    profile_end <- ALL %>% filter(time == tsteps, variable %in% profiles_needed_end) 
+    if(nrow(profile_end) == 3){
+      likelihood_profile_end <- profile_end %>% 
+        mutate(prop = value / c(total_end[1],total_end[2],total_end[2]),
+               cutoff = pmax(0,prop - 0.01),#c(0.8,0.2,0.2)), # more the better
+               likelihood = log(prop)) %>% summarise(sum(likelihood))} else{likelihood_profile_end <- -Inf}
+    
+    #### Compare to data 
+    compare_dat <- likelihood_lookup_elements + likelihood_lookup_totals + 10 * likelihood_profile_end # add in a 10* weight for profile_end as otherwise only a small contribution relatively
+  }else{compare_dat <- -Inf}
+  
+  model_outputp <- rename(model_outputp, parent_strain = parent)
+  model_outputp$name <- recode(model_outputp$variable, V2 = "phi6",V5 = "phi2",V6 = "p1",V7 = "p2",V8 = "p3",V10 ="p4")
+  
+  g1 <- ggplot(pigg_elements %>% filter(name %in% c("phi6","phi2","p1","p2","p3","p4")),
+               aes(x=time, y = sum_prop, group = interaction(name, pig))) +
+    geom_line(aes(col = name, linetype = factor(pig)),size = 1.5, alpha = 0.4) +
+    geom_line(data = model_outputp, aes(x = time, y = prev, group = interaction(parent_strain,name))) +
+    geom_point(aes(col = name),size = 1.5) +
+    facet_wrap(name~parent_strain, ncol = 2) + 
+    ggtitle(paste0("likelihood = ", round(compare_dat,3), "(",round(likelihood_lookup_elements,3),"+",
+                                                                    round(likelihood_lookup_totals,3),"+",round(likelihood_profile_end,3),")"))
+  
+  g2 <- ggplot(totalsp, aes(x=time, y = value, group = interaction(time,name,parent))) +
+    geom_point(aes(col = factor(parent))) +
+    geom_line(aes(group = interaction(lim, parent), col = factor(parent)), lty = "dashed") +
+    scale_y_log10() +
+    geom_line(data = model_outputt, aes(x=time, y = total, group = parent, col = factor(parent)))
+  
+  g3 <- ggplot(ALL %>% filter(variable %in% profiles_needed_end), aes(x=time, y = value)) + geom_line(aes(col = variable)) + geom_vline(xintercept = tsteps) + 
+    geom_hline(yintercept = c(0.05) * max(ALL$value)) + scale_color_manual(values = c("red","green","blue"), breaks = c(profiles_needed_end))
+  
+  ## Only need to do first time
+  g <- g1 / (g2 + g3)
+  ggsave(paste0("plots/",plot_name,".pdf"))
+  
+  
 }

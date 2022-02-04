@@ -63,3 +63,42 @@ out <- fmcmc::MCMC(
   nsteps  = 5e3,
   kernel  = kernel_normal(scale = .0000001)
 )
+
+
+out <- fmcmc::MCMC(
+  initial = out,
+  fun     = run_sim_logPosterior,
+  nsteps  = 5e3,
+  kernel  = kernel_normal(scale = .0000001)
+)
+
+# try adapt
+khaario <- kernel_adapt(Sd = .0000001, freq = 1, warmup = 500, lb = 0)
+
+set.seed(12) 
+
+out_haario_1 <- fmcmc::MCMC(
+  initial   = out,                       
+  fun       = run_sim_logPosterior, 
+  nsteps    = 3000,    
+  kernel    = khaario, # We passed the predefined kernel
+  thin      = 1,       # No thining here
+  nchains   = 1L,      # A single chain
+  multicore = FALSE    # Running in serial
+)
+plot(out_haario_1[,1:5])
+
+khaario <- kernel_adapt(Sd = .00000001, freq = 1, warmup = 500, lb = 0)
+
+out_haario_2 <- fmcmc::MCMC(
+  initial   = out_haario_1,                       
+  fun       = run_sim_logPosterior, 
+  nsteps    = 3000,    
+  kernel    = khaario, # We passed the predefined kernel
+  thin      = 1,       # No thining here
+  nchains   = 1L,      # A single chain
+  multicore = FALSE    # Running in serial
+)
+plot(out_haario_2[,1:5])
+write.csv(out_haario_2, "fits/3101_scn2_3e3.csv")
+

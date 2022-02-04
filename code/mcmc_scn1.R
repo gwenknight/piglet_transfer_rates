@@ -104,3 +104,20 @@ out_final <- fmcmc::MCMC(
   kernel    = kernel_normal(scale = .000000000000001),
   thin      = 10
 )
+
+#### ADAPT
+khaario <- kernel_adapt(Sd = 0.000000001,freq = 1, warmup = 500, ub = c(0.2,0.2,0.5,3,1.5),
+                        lb = c(0,0,-0.5,rep(0,2)))
+
+set.seed(12) 
+
+out_haario_1 <- fmcmc::MCMC(
+  initial   = Initial.Values,                       
+  fun       = run_sim_logPosterior, 
+  nsteps    = 5000,    
+  kernel    = khaario, # We passed the predefined kernel
+  thin      = 1,       # No thining here
+  nchains   = 1L,      # A single chain
+  multicore = FALSE    # Running in serial
+)
+plot(out_haario_1[,1:5])

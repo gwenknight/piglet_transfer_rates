@@ -57,6 +57,15 @@ Initial.Values = c(mu_phage = 0.01, mu_plasmid = 0.01,
                    f_phage = 0.000001, f_plasmid = 0.00000001,
                    grow = 0.17, 
                    rel_fit = 0.99)
+Initial.Values = c(mu2 = 0.00023631663994558, mu5 = 7.96232764582261e-07, mu6 = 0.0362005899163667, 
+                   mu7 = 3.84139033003573e-05, mu8 = 0.0516027884447939, mu10 = 0.0202872958267813, 
+                   gamma2 = 2.36264639681026e-05, gamma5 = 1.14560454890954e-06, 
+                   gamma6 = 3.33363775439206e-10, gamma7 = 6.92065123035721e-07, 
+                   gamma8 = 5.05865587238981e-06, gamma10 = 5.34202975235121e-12, 
+                   f2 = -2.10459304661928, f5 = -1.86778149978006, f6 = 0.673853238158728, 
+                   f7 = -0.334461607733397, f8 = 2.00273114386821, f10 = 0.706988436254512, 
+                   grow = 0.0436026095794833, rel_fit = 1.34916656665852)
+
 
 #Initial.Values = samp.coda[100,]
 
@@ -65,6 +74,7 @@ Initial.Values = c(mu_phage = 0.01, mu_plasmid = 0.01,
 
 out <- piglet_mrsa_movement(tsteps, Initial.Values, ini$bacteria, ini$difference_list)
 
+#out <- piglet_mrsa_movement(tsteps, parameters, ini$bacteria, ini$difference_list)
 
 ### fg = 0.0002
 ### f = 0.1 grow = 5    4.5
@@ -86,23 +96,41 @@ if(!is.null(out$prev_predict)){
   #distributs %>% filter(name == "p1", parent == 1, n_colonies_prev == 0.9900) %>% summarise(sum(prob_all))
   
   # lookup the probability from this distribution for the data
-  likelihood_lookup_elements <- left_join(data_6, distributs, by = c("parent","time","variable","n_colonies_prev")) %>% summarise(sum(log(prob_all)))
+  likelihood_lookup_elements <- as.numeric(left_join(data_6, distributs, by = c("parent","time","variable","n_colonies_prev")) %>% 
+    mutate(exp_miss = dnorm(prob_all, n_colonies_prev, 0.1)) %>% 
+    summarise(sum(log(exp_miss)))) #summarise(sum(log(prob_all)))
   
   #### total bugs output from model (b)
   model_outputt <- out$totl_predict
   
-  likelihood_lookup_totals <- left_join(model_outputt, totals, by = c("time", "parent")) %>% rowwise() %>% mutate(val_in = as.numeric(between(total,min,max))) %>%
-    as.data.frame() %>% mutate(likelihood = weight * val_in) %>% summarise(sum(log(likelihood)))
+  likelihood_lookup_totals <- as.numeric(left_join(model_outputt, totals, by = c("time", "parent")) %>% rowwise() %>% 
+    #mutate(val_in = as.numeric(between(total,min,max))) %>% # instead of 1 / 0 make distance 
+    mutate(val_in = dnorm(total, mean = (max - min)/2 - min, sd = 2 * (max - min))) %>% # instead of 1 / 0 make distance 
+    as.data.frame() %>% mutate(likelihood = val_in) %>% summarise(sum(log(likelihood))))
   
   #### ensure certain profiles present (c)
   total_end <- unlist(out$all_results %>% filter(time == tsteps) %>% group_by(parent) %>% summarise(total = sum(value)) %>%select(total))
   ## Need to be present at > 80% and > 20% for parent 1 and parent 2 respectively 
   profile_end <- out$all_results %>% filter(time == tsteps, variable %in% profiles_needed_end) 
-  if(nrow(profile_end) == 3){
-    likelihood_profile_end <- profile_end %>% 
-    mutate(prop = value / c(total_end[1],total_end[2],total_end[2]),
-           cutoff = pmax(0,prop - 0.01),#c(0.8,0.2,0.2)), # more the better
-           likelihood = log(prop)) %>% summarise(sum(likelihood))} else{likelihood_profile_end <- -Inf}
+  profile_end$variable <- as.numeric(profile_end$variable)
+  if(nrow(profile_end) == 3){prof_end <- profile_end$value}else{
+    prf_end <- as.data.frame(cbind(profiles_needed_end,c(0,0,0)));colnames(prf_end) <- c("variable","end") 
+    p <- left_join(prf_end, profile_end, by = "variable")
+    p[which(is.na(p$value)), "value"] <- 0
+    prof_end <- p$value
+  }
+  # If total_end = 0 then prof_end will be 0 too 
+  if(total_end[1]>0){ prof_end[1] <-  prof_end[1]/total_end[1]}
+  if(total_end[2]>0){ prof_end[2:3] <-  prof_end[2:3]/total_end[2]}
+  # Could change sd etc if not close enough 
+  likelihood_profile_end <- sum(log(dnorm(prof_end,mean = c(0.8,0.2,0.2), sd = 0.5)))
+  
+  # Don't make -Inf possible
+  # if(nrow(profile_end) == 3 && total_end[2] > 0){
+  #   likelihood_profile_end <- profile_end %>% 
+  #     mutate(prop = value / c(total_end[1],total_end[2],total_end[2]),
+  #            cutoff = pmax(0,prop - 0.05),#c(0.8,0.2,0.2)), # more the better # not using -- too strict
+  #            likelihood = log(prop)) %>% summarise(sum(likelihood))} else{likelihood_profile_end <- -Inf}
   
   #### Compare to data 
   compare_dat <- likelihood_lookup_elements + likelihood_lookup_totals + 10 * likelihood_profile_end # add in a 10* weight for profile_end as otherwise only a small contribution relatively

@@ -15,6 +15,13 @@ library(scales)
 library(reshape2)
 library(dplyr)
 library(Rfast)
+library(patchwork)
+library(prodlim)
+library(ggforce)
+library(ggridges)
+
+source("code/piglet_mrsa_functions.R")
+theme_set(theme_bw(base_size = 11))
 
 
 ################### Data 
@@ -29,7 +36,7 @@ totals <- read.csv("data/totals_bug.csv")[,-1] %>% select(time,value, parent, li
   pivot_wider(names_from = lim) %>% mutate(weight = 1/(max - min))
 
 
-numCores <- parallel::detectCores() - 2
+numCores <- parallel::detectCores() - 4
 numCores
 
 ### Functions
@@ -58,7 +65,7 @@ Y <- matrix(0, nrow=nsamples, ncol=nparameters)
 for(ii in 1:nparameters){
   Y[,ii] <- qunif(X[,ii], min = param_ranges[ii,1], max = param_ranges[ii,2])
 }
-write.csv(Y, "fits/22_12/paraset.csv")
+write.csv(Y, "fits/22_01/paraset.csv")
 
 
 #### Parallel
