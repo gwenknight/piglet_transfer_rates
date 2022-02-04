@@ -103,3 +103,95 @@ jobs:
           git add fits
           git commit -m "New results mcmc adapt"
           git push
+          
+# A 3rd job, which will run in parallel of the 1st job
+  script-run3:
+    runs-on: macos-latest # Runs the job on MacOS. Other option: ubuntu-latest (see README for pros/cons)
+    steps:
+      # Manually installing Homebrew to overcome some version issues
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+        
+      # Load the repository  
+      - name: Checkout repos
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      # Setup R (pretty explicit!)
+      - name: Setup R
+        uses: r-lib/actions/setup-r@master
+
+      # Here, you can list all the R packages you want to install
+      - name: Install dependencies
+        run: |
+          Sys.setenv(R_REMOTES_NO_ERRORS_FROM_WARNINGS = "true")
+          options(install.packages.check.source = "no")
+          pkgs <- c("ggplot2", "scales","reshape2","dplyr","Rfast","here",
+          "tmvtnorm","tidyverse","nlme","coda","plyr","patchwork","prodlim",
+          "fmcmc","adaptMCMC")
+          install.packages(pkgs, repos = "https://cloud.r-project.org/")
+        shell: Rscript {0}
+ 
+      # Run the analysis script
+      - name: Run R script
+        run: |
+          source(here::here("code", "mcmc_scn2_cluster_adapt.R"))
+        shell: Rscript {0}
+
+      # Save the results by pushing them back to the repository
+      - name: Commit and push files
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git pull
+          git add fits
+          git commit -m "New results mcmc adapt"
+          git push
+          
+# A 4th job, which will run in parallel of the 1st job
+  script-run4:
+    runs-on: macos-latest # Runs the job on MacOS. Other option: ubuntu-latest (see README for pros/cons)
+    steps:
+      # Manually installing Homebrew to overcome some version issues
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+        
+      # Load the repository  
+      - name: Checkout repos
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      # Setup R (pretty explicit!)
+      - name: Setup R
+        uses: r-lib/actions/setup-r@master
+
+      # Here, you can list all the R packages you want to install
+      - name: Install dependencies
+        run: |
+          Sys.setenv(R_REMOTES_NO_ERRORS_FROM_WARNINGS = "true")
+          options(install.packages.check.source = "no")
+          pkgs <- c("ggplot2", "scales","reshape2","dplyr","Rfast","here",
+          "tmvtnorm","tidyverse","nlme","coda","plyr","patchwork","prodlim",
+          "fmcmc","adaptMCMC")
+          install.packages(pkgs, repos = "https://cloud.r-project.org/")
+        shell: Rscript {0}
+ 
+      # Run the analysis script
+      - name: Run R script
+        run: |
+          source(here::here("code", "mcmc_scn3_cluster_adapt.R"))
+        shell: Rscript {0}
+
+      # Save the results by pushing them back to the repository
+      - name: Commit and push files
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git pull
+          git add fits
+          git commit -m "New results mcmc adapt"
+          git push
