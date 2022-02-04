@@ -461,7 +461,7 @@ piglet_mrsa_movement <- function(tsteps, parameters_in, bacteria, difference_lis
         # between "differences" (which only contains valid transitions for strain i) and
         # "new_bacteria" (which contains all 2048 possible strains)
         probas[is.na(probas)] <- 0 # got na errors in rmultinom - fix with this for now
-        #if(sum(probas) == "NA"){print(parameters_in); break}
+        if(sum(probas) == 0){probas[1] <- 1}#print(parameters_in); break}
         
         new_bacteria[differences[,"id"],"freq"] = new_bacteria[differences[,"id"],"freq"] +
           pmin((Nmax - sum(new_bacteria[,"freq"]))/length(new_bacteria[i,]), rmultinom(1, bacteria[i, "freq"], probas)) # due to discrete time step, don't want to end up with negative bugs as more than Nmax at some point
