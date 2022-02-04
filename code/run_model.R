@@ -96,17 +96,17 @@ if(!is.null(out$prev_predict)){
   #distributs %>% filter(name == "p1", parent == 1, n_colonies_prev == 0.9900) %>% summarise(sum(prob_all))
   
   # lookup the probability from this distribution for the data
-  likelihood_lookup_elements <- as.numeric(left_join(data_6, distributs, by = c("parent","time","variable","n_colonies_prev")) %>% 
-    mutate(exp_miss = dnorm(prob_all, n_colonies_prev, 0.1)) %>% 
-    summarise(sum(log(exp_miss)))) #summarise(sum(log(prob_all)))
+  likelihood_lookup_elements <- left_join(data_6, distributs, by = c("parent","time","variable","n_colonies_prev")) %>% 
+    mutate(exp_miss = dnorm(prob_all, 1, 0.1)) %>% # experimental measure - 10% around a prob of 1
+    summarise(sum(log(exp_miss))) #summarise(sum(log(prob_all)))
   
   #### total bugs output from model (b)
   model_outputt <- out$totl_predict
   
-  likelihood_lookup_totals <- as.numeric(left_join(model_outputt, totals, by = c("time", "parent")) %>% rowwise() %>% 
+  likelihood_lookup_totals <- left_join(model_outputt, totals, by = c("time", "parent")) %>% rowwise() %>% 
     #mutate(val_in = as.numeric(between(total,min,max))) %>% # instead of 1 / 0 make distance 
     mutate(val_in = dnorm(total, mean = (max - min)/2 - min, sd = 2 * (max - min))) %>% # instead of 1 / 0 make distance 
-    as.data.frame() %>% mutate(likelihood = val_in) %>% summarise(sum(log(likelihood))))
+    as.data.frame() %>% mutate(likelihood = val_in) %>% summarise(sum(log(likelihood)))
   
   #### ensure certain profiles present (c)
   total_end <- unlist(out$all_results %>% filter(time == tsteps) %>% group_by(parent) %>% summarise(total = sum(value)) %>%select(total))
