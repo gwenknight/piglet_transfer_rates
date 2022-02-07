@@ -560,7 +560,8 @@ run_sim_logPosterior <- function(theta_in){
     
     likelihood_lookup_totals <- left_join(model_outputt, totals, by = c("time", "parent")) %>% rowwise() %>% 
       #mutate(val_in = as.numeric(between(total,min,max))) %>% # instead of 1 / 0 make distance 
-      mutate(val_in = dnorm(total, mean = (max - min)/2 - min, sd = 2 * (max - min))) %>% # instead of 1 / 0 make distance 
+      ungroup() %>% 
+      mutate(val_in = dnorm(total, mean = (log10(max) - log10(min))/2 + log10(min), sd = (log10(max) - log10(min))/20)) %>% #mean = (max - min)/2 + min, sd = (max - min)/10000)) %>% # instead of 1 / 0 make distance 
       as.data.frame() %>% mutate(likelihood = val_in) %>% summarise(sum(log(likelihood)))
     
     #### ensure certain profiles present (c)
