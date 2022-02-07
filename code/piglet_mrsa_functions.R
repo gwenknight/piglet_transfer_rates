@@ -552,7 +552,7 @@ run_sim_logPosterior <- function(theta_in){
     
     # lookup the probability from this distribution for the data
     likelihood_lookup_elements <- left_join(data_6, distributs, by = c("parent","time","variable","n_colonies_prev")) %>% 
-      mutate(exp_miss = dnorm(prob_all, 1, 0.1)) %>% # experimental measure - 10% around a prob of 1
+      mutate(exp_miss = dnorm(prob_all, 1, 0.3)) %>% # experimental measure - 10% around a prob of 1
       summarise(sum(log(exp_miss))) #summarise(sum(log(prob_all)))
     
     #### total bugs output from model (b)
