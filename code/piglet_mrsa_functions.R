@@ -337,7 +337,7 @@ piglet_mrsa_movement <- function(tsteps, parameters_in, bacteria, difference_lis
     rate_gain <- as.numeric(c(0,parameters_in["gamma"],0,0,parameters_in["gamma"],parameters_in["gamma"],parameters_in["gamma"],parameters_in["gamma"],0,parameters_in["gamma"]))
     fitness_costs <- as.numeric(c(0,0,0,0,0,0,0,0,0,0))
     growth_rate <- as.numeric(parameters_in["grow"])
-    rel_fit_human <- as.numeric(parameters_in["rel_fit"])
+    rel_fit_human <- 1
   }
   
   # If fixed input - same rates for phage vs plasmids

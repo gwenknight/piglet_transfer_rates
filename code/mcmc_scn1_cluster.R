@@ -51,6 +51,9 @@ Initial.Values = c(mu = 0.01,
 #out <- piglet_mrsa_movement(tsteps, Initial.Values, ini$bacteria, ini$difference_list)
 #run_sim_logPosterior(Initial.Values)
 
+
+
+
 ### Try 
 
 out_final <- fmcmc::MCMC(

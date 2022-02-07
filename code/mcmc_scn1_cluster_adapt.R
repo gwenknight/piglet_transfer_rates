@@ -51,6 +51,10 @@ Initial.Values = c(mu = 0.01,
 #out <- piglet_mrsa_movement(tsteps, Initial.Values, ini$bacteria, ini$difference_list)
 #run_sim_logPosterior(Initial.Values)
 
+### read in 
+#Initial.Values <- as.matrix(read.csv("fits/scn1_2022-02-05_00-26-30_GMT_trace.csv")[,-1])
+
+
 ### Try 
 
 out_final <- fmcmc::MCMC(
