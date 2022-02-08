@@ -51,11 +51,13 @@ Initial.Values = c(mu2 = 2.58492135046923e-05, mu5 = 1.23694298645124e-07, mu6 =
 #run_sim_logPosterior(Initial.Values)
 
 ### Try 
+sd <- read.csv("fits/scn4_sd_lhs3.csv")[,-1]
+
 out_final <- fmcmc::MCMC(
   initial   = Initial.Values,                      
   fun       = run_sim_logPosterior, 
-  nsteps    = 2.5e3,                       # Increasing the sample size
-  kernel    = kernel_adapt(freq = 1, warmup = 500, ub = c(rep(0.1,12),rep(0.2,6),3,1.2),
+  nsteps    = 2.2e3,                       # Increasing the sample size
+  kernel    = kernel_adapt(Sd = sd, freq = 1, warmup = 500, ub = c(rep(0.2,12),rep(0.2,6),3,1.2),
                            lb = c(rep(0,12),rep(-0.2,6), rep(0,2))), 
   thin      = 1
 )

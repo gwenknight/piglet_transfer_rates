@@ -51,7 +51,7 @@ Initial.Values = c(mu_phage = 0.01, mu_plasmid = 0.01,
 out_final <- fmcmc::MCMC(
   initial   = Initial.Values,                      
   fun       = run_sim_logPosterior, 
-  nsteps    = 2.5e3,                       # Increasing the sample size
+  nsteps    = 2.2e3,                       # Increasing the sample size
   kernel    = kernel_adapt(freq = 1, warmup = 500, ub = c(rep(0.1,4),rep(0.2,2),3,1.2),
                            lb = c(rep(0,4),rep(-0.2,2), rep(0,2))), 
   thin      = 1
