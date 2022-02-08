@@ -60,7 +60,7 @@ out_final <- fmcmc::MCMC(
   initial   = Initial.Values,                       # Automatically takes the last 2 points
   fun       = run_sim_logPosterior, 
   nsteps    = 2.5e3,                       # Increasing the sample size
-  kernel    = kernel_normal(scale = .0000000000000001),
+  kernel    = kernel_normal(scale = .000000000000001),
   thin      = 1
 )
 
