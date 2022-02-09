@@ -37,28 +37,37 @@ totals <- read.csv("data/totals_bug.csv")[,-1] %>% select(time,value, parent, li
 ini <- initial_piglet_setup(384)
 
 # parameters
-Initial.Values = c(mu2 = 2.58492135046923e-05, mu5 = 1.23694298645124e-07, mu6 = 0.0091543430464811, 
-                   mu7 = 5.63000577873516e-06, mu8 = 0.0100363784007989, mu10 = 0.00644058325472071, 
-                   gamma2 = 1.03260990391265e-05, gamma5 = 1.29510851107398e-06, 
-                   gamma6 = 7.43707130531284e-12, gamma7 = 9.90849379073332e-07, 
-                   gamma8 = 1.18084441913925e-08, gamma10 = 1.25138645913259e-12, 
-                   f2 = -0.222792921010004, f5 = -0.311241161192935, f6 = 0.635171096823821, 
-                   f7 = -0.172511628201815, f8 = 0.281506548980894, f10 = 0.781415083339214, 
-                   grow = 0.125465546487709, rel_fit = 1.08138114848714)
+# Initial.Values = c(mu2 = 2.58492135046923e-05, mu5 = 1.23694298645124e-07, mu6 = 0.0091543430464811, 
+#                    mu7 = 5.63000577873516e-06, mu8 = 0.0100363784007989, mu10 = 0.00644058325472071, 
+#                    gamma2 = 1.03260990391265e-05, gamma5 = 1.29510851107398e-06, 
+#                    gamma6 = 7.43707130531284e-12, gamma7 = 9.90849379073332e-07, 
+#                    gamma8 = 1.18084441913925e-08, gamma10 = 1.25138645913259e-12, 
+#                    f2 = -0.222792921010004, f5 = -0.311241161192935, f6 = 0.635171096823821, 
+#                    f7 = -0.172511628201815, f8 = 0.281506548980894, f10 = 0.781415083339214, 
+#                    grow = 0.125465546487709, rel_fit = 1.08138114848714)
+
+Initial.Values = c(mu2 = 0.02, mu5 = 0.00005-07, mu6 = 0.00005,
+                   mu7 = 0.00005, mu8 = 0.00005, mu10 = 0.00005,
+                   gamma2 = 0.00005, gamma5 = 0.00005,
+                   gamma6 = 0.00005, gamma7 = 0.00005,
+                   gamma8 = 0.0000508, gamma10 = 0.00005,
+                   f2 = -0.00005, f5 = -0.00005, f6 = 0.00005,
+                   f7 = -0.00005, f8 = 0.00005, f10 = 0.00005,
+                   grow = 0.12, rel_fit = 1.08)
 
 # Check non-zero likelihood for start
 #out <- piglet_mrsa_movement(tsteps, Initial.Values, ini$bacteria, ini$difference_list)
 #run_sim_logPosterior(Initial.Values)
 
 ### Try 
-sd <- read.csv("fits/scn4_sd_lhs3.csv")[,-1]
+#sd <- read.csv("fits/scn4_sd_lhs3.csv")[,-1]
 
 out_final <- fmcmc::MCMC(
   initial   = Initial.Values,                      
   fun       = run_sim_logPosterior, 
   nsteps    = 2.2e3,                       # Increasing the sample size
-  kernel    = kernel_adapt(Sd = sd, freq = 1, warmup = 500, ub = c(rep(0.2,12),rep(1,6),3,1.2),
-                           lb = c(rep(0,12),rep(-1,6), rep(0,2))), 
+  kernel    = kernel_adapt(freq = 1, warmup = 500, ub = c(rep(0.7,12),rep(0.7,6),3,1.5),
+                           lb = c(rep(0,12),rep(-0.7,6), rep(0,2))), 
   thin      = 1
 )
 

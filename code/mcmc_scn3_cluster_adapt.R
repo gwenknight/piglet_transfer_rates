@@ -53,8 +53,8 @@ out_final <- fmcmc::MCMC(
   initial   = Initial.Values,                      
   fun       = run_sim_logPosterior, 
   nsteps    = 2.2e3,                       # Increasing the sample size
-  kernel    = kernel_adapt(freq = 1, warmup = 500, ub = c(rep(0.3,2),rep(0.5,6),3,1.2),
-                           lb = c(rep(0,2),rep(-0.5,6), rep(0,2))), 
+  kernel    = kernel_adapt(freq = 1, warmup = 500, ub = c(rep(0.7,2),rep(0.7,6),3,1.5),
+                           lb = c(rep(0,2),rep(-0.7,6), rep(0,2))), 
   thin      = 1
 )
 
