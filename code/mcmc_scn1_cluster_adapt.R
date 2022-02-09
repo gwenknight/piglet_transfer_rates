@@ -72,11 +72,11 @@ filename = gsub(":", "-", filename)
 
 write.csv(out_final, here::here("fits/",paste0("scn1_a_",filename,"_","trace",".csv")))
 
-#### Look at 
-mcmc.trace.burned <- burnAndThin(out_final, burn = 500)
-plot(mcmc.trace.burned)
-autocorr.plot(mcmc.trace.burned)
-plotESSBurn(out_final)
-library("lattice")  ## for xyplot
-xyplot(mcmc.trace.burned)
-effectiveSize(mcmc.trace.burned) # aiming for 200 - 1000, <100 bad
+# #### Look at 
+# mcmc.trace.burned <- burnAndThin(out_final, burn = 500)
+# plot(mcmc.trace.burned)
+# autocorr.plot(mcmc.trace.burned)
+# plotESSBurn(out_final)
+# library("lattice")  ## for xyplot
+# xyplot(mcmc.trace.burned)
+# effectiveSize(mcmc.trace.burned) # aiming for 200 - 1000, <100 bad
