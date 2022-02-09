@@ -60,7 +60,7 @@ Initial.Values = c(mu = 0.01,
 out_final <- fmcmc::MCMC(
   initial   = Initial.Values,                       # Automatically takes the last 2 points
   fun       = run_sim_logPosterior, 
-  nsteps    = 2.2e3,                       # Increasing the sample size
+  nsteps    = 1e4,                       # Increasing the sample size: about 6hrs for 5e3
   kernel    = kernel_adapt(Sd = .0000000000000001,freq = 1, warmup = 500, ub = c(rep(0.3,2),rep(0.5,1),3,1.3),
                            lb = c(rep(0,2),rep(-0.2,1), rep(0,2))), 
   thin      = 1
@@ -72,4 +72,11 @@ filename = gsub(":", "-", filename)
 
 write.csv(out_final, here::here("fits/",paste0("scn1_a_",filename,"_","trace",".csv")))
 
-
+#### Look at 
+mcmc.trace.burned <- burnAndThin(out_final, burn = 500)
+plot(mcmc.trace.burned)
+autocorr.plot(mcmc.trace.burned)
+plotESSBurn(out_final)
+library("lattice")  ## for xyplot
+xyplot(mcmc.trace.burned)
+effectiveSize(mcmc.trace.burned) # aiming for 200 - 1000, <100 bad
