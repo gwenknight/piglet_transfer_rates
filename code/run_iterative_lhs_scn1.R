@@ -1,5 +1,4 @@
 ### Iterative lhs run 
-
 library(data.table)
 library(janitor)
 library(foreach)
@@ -35,7 +34,7 @@ Initial.Values = c(mu = 0.01,
 Scen = "scn1"
 
 #run LHS on this + / - 100%
-m1 <- lhs_build_run(Initial.Values, limit = 0.5, paste0(Scen,"/iv1"), nsamples = 5)
+m1 <- lhs_build_run(Initial.Values, limit = 0.5, paste0(Scen,"/iv1"), nsamples = 1e4)
 
 # Run LHS on this + / - 100% 
 new_iv = m1$max_ll_para
@@ -64,12 +63,18 @@ names(new_iv) <- names(Initial.Values)
 mz_3 <- lhs_build_run(new_iv, 10, paste0(Scen,"/ivz3"), nsamples = 1e4)
 
 # Combine all of above
-all_worked_with_zoom = rbind(all_worked, 
-                             mz_1$worked,mz_2$worked,mz_3$worked)
+all_worked_with_zoom = as.data.frame(rbind(all_worked, 
+                             mz_1$worked,mz_2$worked,mz_3$worked))
 
 #Take top 1000 likelihoods and look at parameter sets
+names(all_worked_with_zoom) <- c("ll", names(Initial.Values))
+
 para_gn <- all_worked_with_zoom %>% filter(!ll == -Inf)
-top_ll <- para_gn[order(para_gn$ll,decreasing = TRUE)[1:1000],]
+top_ll <- para_gn[order(para_gn$ll,decreasing = TRUE)[1:min(nrow(para_gn),1000)],] %>%
+  pivot_longer(cols=names(Initial.Values))
 
-ggplot(top_ll, aes(x=value,group = name)) + geom_histogram() + facet_wrap(~name, scales = "free")
-
+ggplot(top_ll, aes(x=value,group = name)) + geom_density(alpha = 0.2, aes(fill = name)) + facet_wrap(~name,ncol = 2, scales = "free")
+setwd(here::here())
+filename = gsub(c(" "), "_", format(as.POSIXct(Sys.time()), tz = "Europe/London", usetz = TRUE))
+filename = gsub(":", "-", filename)
+ggsave(paste0("fits/",Scen,"lhs_density",filename,".pdf"))
