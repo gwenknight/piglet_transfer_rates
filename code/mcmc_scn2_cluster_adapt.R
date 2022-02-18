@@ -48,12 +48,13 @@ Initial.Values = c(mu_phage = 0.01, mu_plasmid = 0.01,
 #run_sim_logPosterior(Initial.Values)
 
 ### Try 
+khaario_scn2 <- kernel_adapt(freq = 1, warmup = 500, ub = c(rep(1,4),rep(1,2),3,1.7),
+                        lb = c(rep(0,4),rep(-1,2), rep(0,2)))
 out_final <- fmcmc::MCMC(
   initial   = Initial.Values,                      
   fun       = run_sim_logPosterior, 
-  nsteps    = 2.2e3,                       # Increasing the sample size
-  kernel    = kernel_adapt(freq = 1, warmup = 500, ub = c(rep(0.7,4),rep(0.7,2),3,1.5),
-                           lb = c(rep(0,4),rep(-0.7,2), rep(0,2))), 
+  nsteps    = 2e4,                       # Increasing the sample size
+  kernel    = khaario_scn2, 
   thin      = 1
 )
 
@@ -62,6 +63,30 @@ filename = gsub(c(" "), "_", format(as.POSIXct(Sys.time()), tz = "Europe/London"
 filename = gsub(":", "-", filename)
 
 write.csv(out_final, here::here("fits/",paste0("scn2_a_",filename,"_","trace",".csv")))
+
+
+out_final2 <- fmcmc::MCMC(
+  initial   = out_final,                      
+  fun       = run_sim_logPosterior, 
+  nsteps    = 2e4,                       # Increasing the sample size
+  kernel    = khaario_scn2, 
+  thin      = 1
+)
+
+# Save output
+filename = gsub(c(" "), "_", format(as.POSIXct(Sys.time()), tz = "Europe/London", usetz = TRUE))
+filename = gsub(":", "-", filename)
+
+write.csv(out_final, here::here("fits/",paste0("scn2_a_",filename,"_","trace",".csv")))
+
+# Looks at
+mcmc.trace.burned <- burnAndThin(out_final, burn = 500)
+plot(mcmc.trace.burned)
+autocorr.plot(mcmc.trace.burned)
+plotESSBurn(out_final)
+library("lattice")  ## for xyplot
+xyplot(mcmc.trace.burned)
+effectiveSize(mcmc.trace.burned) # aiming for 200 - 1000, <100 bad
 
 
 

@@ -405,7 +405,6 @@ piglet_mrsa_movement <- function(tsteps, parameters_in, bacteria, difference_lis
       if(sum(bacteria[1:nrow(bacteria)/2,"freq"]) > 0){ MGE_prevalence_1 = colsums(MGE_prevalence[1:nrow(bacteria)/2,])/sum(bacteria[1:nrow(bacteria)/2,"freq"])}else{MGE_prevalence_1 = rep(0,10)}  # just in parent 1
       if(sum(bacteria[(1+nrow(bacteria)/2):nrow(bacteria),"freq"]) > 0){MGE_prevalence_2 = colsums(MGE_prevalence[(1+nrow(bacteria)/2):nrow(bacteria),])/sum(bacteria[(1+nrow(bacteria)/2):nrow(bacteria),"freq"])}else{MGE_prevalence_2=rep(0,10)} # just in parent 2
       
-      
       #Store MGE prev
       all_mge_prev[(t-1),] = MGE_prevalence_1
       all_mge_prev[(1+tsteps) + (t-1),] = MGE_prevalence_2
@@ -470,7 +469,7 @@ piglet_mrsa_movement <- function(tsteps, parameters_in, bacteria, difference_lis
         #currently just a deterministic logistic calculation
         # Need to add in fitness cost of elements: assume additive atm 
         new_bacteria[i,"freq"] = new_bacteria[i,"freq"] +
-          min((Nmax - sum(new_bacteria[,"freq"])), round(bacteria[i,"freq"] * (1 - fitness_cost_all[i]) * growth_rate * (1 - sum(bacteria[,"freq"])/Nmax)))
+          min((Nmax - sum(new_bacteria[,"freq"])), round(bacteria[i,"freq"] * (max(0,(1 - fitness_cost_all[i]))) * growth_rate * (1 - sum(bacteria[,"freq"])/Nmax)))
         
         #print(c(sum(bacteria[,"freq"]),round(bacteria[i,"freq"] * (1 - fitness_cost_all[i]) * growth_rate * (1 - sum(bacteria[,"freq"])/Nmax))))
       }
@@ -600,6 +599,14 @@ run_sim_logPosterior <- function(theta_in){
 
 run_sim_logPosterior_para <- function(theta_in){
   library(tidyverse)
+  library(Rfast)
+  library(prodlim)
+  
+  dist_like <- read.csv("data/seen_predicted.csv")[,-1]
+  pigg_elements <- read.csv("data/pigg_elements.csv")[,-1]
+  data_6 <- read.csv("data/data_to_fit.csv")[,-1] %>% filter(variable %in% c("V2","V5","V6","V7","V8","V10"))
+  totals <- read.csv("data/totals_bug.csv")[,-1] %>% select(time,value, parent, lim) %>%
+    pivot_wider(names_from = lim) %>% mutate(weight = 1/(max - min))
   
   tsteps = 384
   
@@ -646,7 +653,7 @@ run_sim_logPosterior_para <- function(theta_in){
                       bacteria[i,-c(ncol(bacteria)-1, ncol(bacteria))])
     
     #only keep transitions with at most 1 difference in MGE profile with the strain we're currently looking at
-    possible_transitions = which(Rfast::rowsums(abs(differences)) < 2,)
+    possible_transitions = which(rowsums(abs(differences)) < 2,)
     
     #add an "id" variable to use later for indexing
     differences = cbind(differences, "id" = c(1:nrow(differences)))
@@ -698,7 +705,7 @@ run_sim_logPosterior_para <- function(theta_in){
     rate_gain <- as.numeric(c(0,theta_in["gamma"],0,0,theta_in["gamma"],theta_in["gamma"],theta_in["gamma"],theta_in["gamma"],0,theta_in["gamma"]))
     fitness_costs <- as.numeric(c(0,0,0,0,0,0,0,0,0,0))
     growth_rate <- as.numeric(theta_in["grow"])
-    rel_fit_human <- as.numeric(theta_in["rel_fit"])
+    rel_fit_human <- 1
   }
   
   # If fixed input - same rates for phage vs plasmids
@@ -759,9 +766,12 @@ run_sim_logPosterior_para <- function(theta_in){
       #MGE prevalence currently:
       #(remember first 10 columns are the MGE profiles)
       MGE_prevalence = bacteria[,c(1:10)]*bacteria[,"freq"]
-      MGE_prevalence_all = Rfast::colsums(MGE_prevalence)/tot_bacteria
-      MGE_prevalence_1 = Rfast::colsums(MGE_prevalence[1:nrow(bacteria)/2,])/sum(bacteria[1:nrow(bacteria)/2,"freq"]) # just in parent 1
-      MGE_prevalence_2 = Rfast::colsums(MGE_prevalence[(1+nrow(bacteria)/2):nrow(bacteria),])/sum(bacteria[(1+nrow(bacteria)/2):nrow(bacteria),"freq"]) # just in parent 2
+      MGE_prevalence_all = colsums(MGE_prevalence)/tot_bacteria
+      #MGE_prevalence_1 = colsums(MGE_prevalence[1:nrow(bacteria)/2,])/sum(bacteria[1:nrow(bacteria)/2,"freq"]) # just in parent 1
+      #MGE_prevalence_2 = colsums(MGE_prevalence[(1+nrow(bacteria)/2):nrow(bacteria),])/sum(bacteria[(1+nrow(bacteria)/2):nrow(bacteria),"freq"]) # just in parent 2
+      
+      if(sum(bacteria[1:nrow(bacteria)/2,"freq"]) > 0){ MGE_prevalence_1 = colsums(MGE_prevalence[1:nrow(bacteria)/2,])/sum(bacteria[1:nrow(bacteria)/2,"freq"])}else{MGE_prevalence_1 = rep(0,10)}  # just in parent 1
+      if(sum(bacteria[(1+nrow(bacteria)/2):nrow(bacteria),"freq"]) > 0){MGE_prevalence_2 = colsums(MGE_prevalence[(1+nrow(bacteria)/2):nrow(bacteria),])/sum(bacteria[(1+nrow(bacteria)/2):nrow(bacteria),"freq"])}else{MGE_prevalence_2=rep(0,10)} # just in parent 2
       
       #Store MGE prev
       all_mge_prev[(t-1),] = MGE_prevalence_1
@@ -805,11 +815,11 @@ run_sim_logPosterior_para <- function(theta_in){
         probas = abs(t(t(differences[,-ncol(differences)]) * probas_sum))
         
         #collapse to vector using rowsums (only 1 value per row will be greater than 0)
-        probas = Rfast::rowsums(probas)
+        probas = rowsums(probas)
         #okay, this is needed to set a probability of the strain NOT changing profile
         #it's not ideal, because sometimes the probabilities add up to more than 1, hence the max() function
         #something to look into...
-        probas[Rfast::rowsums(differences[,1:10])==0] = max(0, 1 - probas)
+        probas[rowsums(differences[,1:10])==0] = max(0, 1 - probas)
         #print(c("probas",probas,"gain",gain_probas))
         
         #use multinomial sampling to decide what the bacteria from strain i now become,
@@ -817,8 +827,8 @@ run_sim_logPosterior_para <- function(theta_in){
         #here's where the "id" column in "differences" is useful: to align the indexing
         # between "differences" (which only contains valid transitions for strain i) and
         # "new_bacteria" (which contains all 2048 possible strains)
-        #probas[is.na(probas)] <- 0 # got na errors in rmultinom - fix with this for now
-        if(sum(probas) == "NA"){print(theta_in); break}
+        probas[is.na(probas)] <- 0 # got na errors in rmultinom - fix with this for now
+        if(sum(probas) == 0){probas[1] <- 1}#print(theta_in); break}
         
         new_bacteria[differences[,"id"],"freq"] = new_bacteria[differences[,"id"],"freq"] +
           pmin((Nmax - sum(new_bacteria[,"freq"]))/length(new_bacteria[i,]), rmultinom(1, bacteria[i, "freq"], probas)) # due to discrete time step, don't want to end up with negative bugs as more than Nmax at some point
@@ -827,7 +837,7 @@ run_sim_logPosterior_para <- function(theta_in){
         #currently just a deterministic logistic calculation
         # Need to add in fitness cost of elements: assume additive atm 
         new_bacteria[i,"freq"] = new_bacteria[i,"freq"] +
-          min((Nmax - sum(new_bacteria[,"freq"])), round(bacteria[i,"freq"] * (1 - fitness_cost_all[i]) * growth_rate * (1 - sum(bacteria[,"freq"])/Nmax)))
+          min((Nmax - sum(new_bacteria[,"freq"])), round(bacteria[i,"freq"] * (max(0,(1 - fitness_cost_all[i]))) * growth_rate * (1 - sum(bacteria[,"freq"])/Nmax)))
         
         #print(c(sum(bacteria[,"freq"]),round(bacteria[i,"freq"] * (1 - fitness_cost_all[i]) * growth_rate * (1 - sum(bacteria[,"freq"])/Nmax))))
       }
@@ -838,13 +848,14 @@ run_sim_logPosterior_para <- function(theta_in){
       all_results[t,] = bacteria[,"freq"]
       
     }
+    
     all_results_out <- all_results # store to check later
     
     # Last MGE prevalence
     MGE_prevalence = bacteria[,c(1:10)]*bacteria[,"freq"]
-    MGE_prevalence_all = Rfast::colsums(MGE_prevalence)/tot_bacteria
-    MGE_prevalence_1 = Rfast::colsums(MGE_prevalence[1:nrow(bacteria)/2,])/sum(bacteria[1:nrow(bacteria)/2,"freq"]) # just in parent 1
-    MGE_prevalence_2 = Rfast::colsums(MGE_prevalence[(1+nrow(bacteria)/2):nrow(bacteria),])/sum(bacteria[(1+nrow(bacteria)/2):nrow(bacteria),"freq"]) # just in parent 2
+    MGE_prevalence_all = colsums(MGE_prevalence)/tot_bacteria
+    if(sum(bacteria[1:nrow(bacteria)/2,"freq"]) > 0){ MGE_prevalence_1 = colsums(MGE_prevalence[1:nrow(bacteria)/2,])/sum(bacteria[1:nrow(bacteria)/2,"freq"])}else{MGE_prevalence_1 = rep(0,10)}  # just in parent 1
+    if(sum(bacteria[(1+nrow(bacteria)/2):nrow(bacteria),"freq"]) > 0){MGE_prevalence_2 = colsums(MGE_prevalence[(1+nrow(bacteria)/2):nrow(bacteria),])/sum(bacteria[(1+nrow(bacteria)/2):nrow(bacteria),"freq"])}else{MGE_prevalence_2=rep(0,10)} # just in parent 2
     
     #Store MGE prev
     all_mge_prev[(tsteps),] = MGE_prevalence_1
@@ -873,14 +884,14 @@ run_sim_logPosterior_para <- function(theta_in){
       filter(time %in% c(4,48,96,288,384))
   }
   
-  # Output
   
+  # Output
   profile_end1.1 <- c(1,1,1,1,1,1,1,1,0,0,1) # pig - same as at start
   profile_end2.1 <- c(0,1,0,0,1,0,0,0,1,0,2) # human - gains phi6 / phi2 / loses p4 (2/5/10)
   profile_end2.2 <- c(0,1,0,0,1,0,1,0,1,0,2) # human
-  profiles_needed_end <- c(prodlim::row.match(profile_end1.1, as.data.frame(bacteria)%>%select(-freq), nomatch = NA),
-                           prodlim::row.match(profile_end2.1, as.data.frame(bacteria)%>%select(-freq), nomatch = NA),
-                           prodlim::row.match(profile_end2.2, as.data.frame(bacteria)%>%select(-freq), nomatch = NA))
+  profiles_needed_end <- c(row.match(profile_end1.1, as.data.frame(bacteria)%>%select(-freq), nomatch = NA),
+                           row.match(profile_end2.1, as.data.frame(bacteria)%>%select(-freq), nomatch = NA),
+                           row.match(profile_end2.2, as.data.frame(bacteria)%>%select(-freq), nomatch = NA))
   
   ### Likelihood
   if(!is.null(prev_predict)){
@@ -896,23 +907,42 @@ run_sim_logPosterior_para <- function(theta_in){
     #distributs %>% filter(name == "p1", parent == 1, n_colonies_prev == 0.9900) %>% summarise(sum(prob_all))
     
     # lookup the probability from this distribution for the data
-    likelihood_lookup_elements <- left_join(data_6, distributs, by = c("parent","time","variable","n_colonies_prev")) %>% summarise(sum(log(prob_all)))
+    likelihood_lookup_elements <- left_join(data_6, distributs, by = c("parent","time","variable","n_colonies_prev")) %>% 
+      mutate(exp_miss = dnorm(prob_all, 1, 0.3)) %>% # experimental measure - 10% around a prob of 1
+      summarise(sum(log(exp_miss))) #summarise(sum(log(prob_all)))
     
     #### total bugs output from model (b)
     model_outputt <- totl_predict
     
-    likelihood_lookup_totals <- left_join(model_outputt, totals, by = c("time", "parent")) %>% rowwise() %>% mutate(val_in = as.numeric(between(total,min,max))) %>%
-      as.data.frame() %>% mutate(likelihood = weight * val_in) %>% summarise(sum(log(likelihood)))
+    likelihood_lookup_totals <- left_join(model_outputt, totals, by = c("time", "parent")) %>% rowwise() %>% 
+      #mutate(val_in = as.numeric(between(total,min,max))) %>% # instead of 1 / 0 make distance 
+      ungroup() %>% 
+      mutate(val_in = dnorm(log10(total), mean = (log10(max) - log10(min))/2 + log10(min), sd = (log10(max) - log10(min))/20)) %>% #mean = (max - min)/2 + min, sd = (max - min)/10000)) %>% # instead of 1 / 0 make distance 
+      as.data.frame() %>% mutate(likelihood = val_in) %>% summarise(sum(log(likelihood)))
     
     #### ensure certain profiles present (c)
     total_end <- unlist(all_results %>% filter(time == tsteps) %>% group_by(parent) %>% summarise(total = sum(value)) %>%select(total))
     ## Need to be present at > 80% and > 20% for parent 1 and parent 2 respectively 
     profile_end <- all_results %>% filter(time == tsteps, variable %in% profiles_needed_end) 
-    if(nrow(profile_end) == 3){
-      likelihood_profile_end <- profile_end %>% 
-        mutate(prop = value / c(total_end[1],total_end[2],total_end[2]),
-               cutoff = pmax(0,prop - 0.05),#c(0.8,0.2,0.2)), # more the better # not using -- too strict
-               likelihood = log(prop)) %>% summarise(sum(likelihood))} else{likelihood_profile_end <- -Inf}
+    profile_end$variable <- as.numeric(profile_end$variable)
+    if(nrow(profile_end) == 3){prof_end <- profile_end$value}else{
+      prf_end <- as.data.frame(cbind(profiles_needed_end,c(0,0,0)));colnames(prf_end) <- c("variable","end") 
+      p <- left_join(prf_end, profile_end, by = "variable")
+      p[which(is.na(p$value)), "value"] <- 0
+      prof_end <- p$value
+    }
+    # If total_end = 0 then prof_end will be 0 too 
+    if(total_end[1]>0){ prof_end[1] <-  prof_end[1]/total_end[1]}
+    if(total_end[2]>0){ prof_end[2:3] <-  prof_end[2:3]/total_end[2]}
+    # Could change sd etc if not close enough 
+    likelihood_profile_end <- sum(log(dnorm(prof_end,mean = c(0.8,0.2,0.2), sd = 0.5)))
+    
+    # Don't make -Inf possible
+    # if(nrow(profile_end) == 3 && total_end[2] > 0){
+    #   likelihood_profile_end <- profile_end %>% 
+    #     mutate(prop = value / c(total_end[1],total_end[2],total_end[2]),
+    #            cutoff = pmax(0,prop - 0.05),#c(0.8,0.2,0.2)), # more the better # not using -- too strict
+    #            likelihood = log(prop)) %>% summarise(sum(likelihood))} else{likelihood_profile_end <- -Inf}
     
     #### Compare to data 
     compare_dat <- likelihood_lookup_elements + likelihood_lookup_totals + 10 * likelihood_profile_end # add in a 10* weight for profile_end as otherwise only a small contribution relatively
@@ -1071,7 +1101,7 @@ plot_time_series <- function(out, plot_name){
     geom_point(aes(col = name),size = 1.5) +
     facet_wrap(name~parent_strain, ncol = 2) + 
     ggtitle(paste0("likelihood = ", round(compare_dat,3), "(",round(likelihood_lookup_elements,3),"+",
-                                                                    round(likelihood_lookup_totals,3),"+",round(likelihood_profile_end,3),")"))
+                   round(likelihood_lookup_totals,3),"+",round(likelihood_profile_end,3),")"))
   
   g2 <- ggplot(totalsp, aes(x=time, y = value, group = interaction(time,name,parent))) +
     geom_point(aes(col = factor(parent))) +

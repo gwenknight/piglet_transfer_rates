@@ -404,4 +404,20 @@ ggplot(para_g, aes(x=ll, group = level)) + geom_histogram(binwidth = 10, aes(fil
   geom_density(alpha=.2,aes(fill = factor(level)))
 
 ggplot(para_g, aes(x=ll, group = level)) + geom_density(alpha=.2,aes(fill = factor(level))) + geom_vline(xintercept = ll_inv) 
-  
+
+# Find top 100 
+para_gn <- para_g %>% filter(!ll == -Inf)
+top_ll <- para_gn[order(para_gn$ll,decreasing = TRUE)[1:1000],]
+
+ggplot(top_ll, aes(x=value,group = name)) + geom_histogram() + facet_wrap(~name, scales = "free")
+
+ggplot(para_g, aes(x=ll, group = level)) + 
+#  geom_vline(xintercept = ll_inv) + 
+  geom_density(alpha=.2,aes(fill = factor(level))) + 
+  geom_density(data = top_ll, aes(fill = factor(level)))
+
+top_ll_wide <- top_ll %>% pivot_wider(names_from = name)
+cor(top_ll_wide[,4:8])
+plot(top_ll_wide[,4:8])
+
+

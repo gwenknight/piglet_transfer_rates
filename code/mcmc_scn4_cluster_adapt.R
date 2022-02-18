@@ -46,7 +46,7 @@ ini <- initial_piglet_setup(384)
 #                    f7 = -0.172511628201815, f8 = 0.281506548980894, f10 = 0.781415083339214, 
 #                    grow = 0.125465546487709, rel_fit = 1.08138114848714)
 
-Initial.Values = c(mu2 = 0.02, mu5 = 0.00005-07, mu6 = 0.00005,
+Initial.Values = c(mu2 = 0.02, mu5 = 0.00005, mu6 = 0.00005,
                    mu7 = 0.00005, mu8 = 0.00005, mu10 = 0.00005,
                    gamma2 = 0.00005, gamma5 = 0.00005,
                    gamma6 = 0.00005, gamma7 = 0.00005,
@@ -62,14 +62,18 @@ Initial.Values = c(mu2 = 0.02, mu5 = 0.00005-07, mu6 = 0.00005,
 ### Try 
 #sd <- read.csv("fits/scn4_sd_lhs3.csv")[,-1]
 
+khaario_scn4 <- kernel_adapt(freq = 1, warmup = 500, ub = c(rep(1,12),rep(1,6),3,1.5),
+                        lb = c(rep(0,12),rep(-1,6), rep(0,2)))
+
 out_final <- fmcmc::MCMC(
   initial   = Initial.Values,                      
   fun       = run_sim_logPosterior, 
-  nsteps    = 2.2e3,                       # Increasing the sample size
-  kernel    = kernel_adapt(freq = 1, warmup = 500, ub = c(rep(0.7,12),rep(0.7,6),3,1.5),
-                           lb = c(rep(0,12),rep(-0.7,6), rep(0,2))), 
-  thin      = 1
+  nsteps    = 1e4,                       # Increasing the sample size
+  kernel    = khaario_scn4, 
+  thin      = 1, 
+  nchains   = 3
 )
+
 
 # Save output
 filename = gsub(c(" "), "_", format(as.POSIXct(Sys.time()), tz = "Europe/London", usetz = TRUE))
@@ -77,6 +81,51 @@ filename = gsub(":", "-", filename)
 
 write.csv(out_final, here::here("fits/",paste0("scn4_a_",filename,"_","trace",".csv")))
 
+save(out_final, file= here::here("fits/",paste0("scn4_a_",filename)))
+mc = load(here::here("fits/",paste0("scn4_a_",filename)))
+out_final3 <- fmcmc::MCMC(
+  initial   = out_final2,                      
+  fun       = run_sim_logPosterior, 
+  nsteps    = 2e4,                       # Increasing the sample size
+  kernel    = khaario_scn4, 
+  thin      = 1
+)
+
+# Save output
+filename = gsub(c(" "), "_", format(as.POSIXct(Sys.time()), tz = "Europe/London", usetz = TRUE))
+filename = gsub(":", "-", filename)
+
+write.csv(out_final3, here::here("fits/",paste0("scn4_a_",filename,"_","trace",".csv")))
+
+#### Look at 
+library("lattice")  ## for xyplot
+library('fitR')
+mcmc.trace.burned1 <- burnAndThin(out_final, burn = 1000)
+mcmc.trace.burned2 <- burnAndThin(out_final2, burn = 1000)
+mcmc.trace.burned3 <- burnAndThin(out_final3, burn = 1000)
+plot(mcmc.trace.burned1)
+plot(mcmc.trace.burned2)
+plot(mcmc.trace.burned3)
+
+autocorr.plot(mcmc.trace.burned)
+plotESSBurn(out_final)
+
+xyplot(mcmc.trace.burned1)
+xyplot(mcmc.trace.burned2)
+xyplot(mcmc.trace.burned3)
+effectiveSize(mcmc.trace.burned1) # aiming for 200 - 1000, <100 bad
+effectiveSize(mcmc.trace.burned2) # aiming for 200 - 1000, <100 bad
+effectiveSize(mcmc.trace.burned3) # aiming for 200 - 1000, <100 bad
 
 
+## COMBINED runs - ? how combine mcmc? 
+library(runjags)
+mcmc.trace.burned3 <- combine.mcmc(
+  mcmc.objects = out_final,
+  thin = 1,
+  collapse.chains = TRUE,
+)
+#burnAndThin(rbind(out_final,out_final2, out_final3), burn = 1000)
+effectiveSize(mcmc.trace.burned3) # aiming for 200 - 1000, <100 bad 
+xyplot(mcmc.trace.burned3)
 

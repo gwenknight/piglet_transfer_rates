@@ -115,7 +115,7 @@ run_sim_logPosterior(parameters)
 run_sim_logPosterior(Initial.Values)
 
 # success rate
-100 * length(which_para) / nsamples ## 69% Too wide => suggest wider 
+100 * length(which_para) / nsamples ## 69% Too narrow => suggest wider 
 
 # Plot output
 out <- piglet_mrsa_movement(tsteps, parameters, ini$bacteria, ini$difference_list)
@@ -282,14 +282,14 @@ plot_circles(ini$bacteria, out$all_results,"scn1_lhs3")
 
 
 #####******* Grab all parameters ******#######
-setwd("fits/scn1/lhs10/")
+setwd("fits/scn1/lhs3/")
 which_para_csv <- list.files() 
 which_para <- as.numeric(sub("\\..*", "",which_para_csv))
 
 work <-list.files(pattern = "*.csv") %>% 
   map_df(~read_csv(.))
 max_ll <- which.max(work$x)
-
+Y <- read.csv("paraset.csv")[,-1]
 parameters <-  c(mu = Y[max_ll,1],
                  gamma = Y[max_ll,2],
                  f = Y[max_ll,3], 
@@ -297,4 +297,5 @@ parameters <-  c(mu = Y[max_ll,1],
                  rel_fit = Y[max_ll,5])
 run_sim_logPosterior(parameters)
 run_sim_logPosterior(Initial.Values)
+
 
