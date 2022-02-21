@@ -578,7 +578,7 @@ run_sim_logPosterior <- function(theta_in){
     if(total_end[1]>0){ prof_end[1] <-  prof_end[1]/total_end[1]}
     if(total_end[2]>0){ prof_end[2:3] <-  prof_end[2:3]/total_end[2]}
     # Could change sd etc if not close enough 
-    likelihood_profile_end <- sum(log(dnorm(prof_end,mean = c(0.8,0.2,0.2), sd = 0.5)))
+    likelihood_profile_end <- sum(log(dnorm(prof_end,mean = c(0.8,0.2,0.2), sd = 0.1)))
     
     # Don't make -Inf possible
     # if(nrow(profile_end) == 3 && total_end[2] > 0){

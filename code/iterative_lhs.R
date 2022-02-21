@@ -11,8 +11,12 @@ lhs_build_run <- function(init_values, limit, save_place, nsamples = 5000){
   setwd(file.path(paste0(here::here(),"/fits"), save_place))
   
   # What are the ranges? 
-  param_ranges <- as.data.frame(cbind(init_values - abs(init_values)/limit,
-                                      init_values + abs(init_values)/limit))
+  if(length(limit) == 1){
+    param_ranges <- as.data.frame(cbind(init_values - abs(init_values)/limit,
+                                        init_values + abs(init_values)/limit))
+  }else{
+    param_ranges <- as.data.frame(limit) # can input range 
+  }
   colnames(param_ranges) <- c("min","max")
   
   # transform a Latin hypercube
