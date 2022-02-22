@@ -312,7 +312,7 @@ piglet_mrsa_movement <- function(tsteps, parameters_in, bacteria, difference_lis
   }
   
   # If just looking at the elements that move
-  if(length(parameters_in) < 32 && length(parameters_in) > 8){
+  if(length(parameters_in) < 32 && length(parameters_in) > 10){
     rate_loss <- as.numeric(c(0,parameters_in["mu2"],0,0,parameters_in["mu5"],parameters_in["mu6"],parameters_in["mu7"],parameters_in["mu8"],0,parameters_in["mu10"]))
     rate_gain <- as.numeric(c(0,parameters_in["gamma2"],0,0,parameters_in["gamma5"],parameters_in["gamma6"],parameters_in["gamma7"],parameters_in["gamma8"],0,parameters_in["gamma10"]))
     fitness_costs <- as.numeric(c(0,parameters_in["f2"],0,0,parameters_in["f5"],parameters_in["f6"],parameters_in["f7"],parameters_in["f8"],0,parameters_in["f10"]))
@@ -580,15 +580,80 @@ run_sim_logPosterior <- function(theta_in){
     # Could change sd etc if not close enough 
     likelihood_profile_end <- sum(log(dnorm(prof_end,mean = c(0.8,0.2,0.2), sd = 0.1)))
     
-    # Don't make -Inf possible
-    # if(nrow(profile_end) == 3 && total_end[2] > 0){
-    #   likelihood_profile_end <- profile_end %>% 
-    #     mutate(prop = value / c(total_end[1],total_end[2],total_end[2]),
-    #            cutoff = pmax(0,prop - 0.05),#c(0.8,0.2,0.2)), # more the better # not using -- too strict
-    #            likelihood = log(prop)) %>% summarise(sum(likelihood))} else{likelihood_profile_end <- -Inf}
+    #### Add in priors
+    # Set up for all - if para not there then 0 
+    if(length(theta_in) < 32 && length(theta_in) > 10){
+      prior.mu = dunif(as.numeric(theta_in["mu2"]), min = 0, max = 1, log = TRUE) + 
+        dunif(as.numeric(theta_in["mu5"]), min = 0, max = 1, log = TRUE) + 
+        dunif(as.numeric(theta_in["mu6"]), min = 0, max = 1, log = TRUE) + 
+        dunif(as.numeric(theta_in["mu7"]), min = 0, max = 1, log = TRUE) + 
+        dunif(as.numeric(theta_in["mu8"]), min = 0, max = 1, log = TRUE) + 
+        dunif(as.numeric(theta_in["mu10"]), min = 0, max = 1, log = TRUE)
+      prior.gamma = dunif(as.numeric(theta_in["gamma2"]), min = 0, max = 1, log = TRUE) + 
+        dunif(as.numeric(theta_in["gamma5"]), min = 0, max = 1, log = TRUE) + 
+        dunif(as.numeric(theta_in["gamma6"]), min = 0, max = 1, log = TRUE) + 
+        dunif(as.numeric(theta_in["gamma7"]), min = 0, max = 1, log = TRUE) + 
+        dunif(as.numeric(theta_in["gamma8"]), min = 0, max = 1, log = TRUE) + 
+        dunif(as.numeric(theta_in["gamma10"]), min = 0, max = 1, log = TRUE)
+      prior.f = dnorm(as.numeric(theta_in["f2"]), mean = 0, sd = 0.1, log = TRUE) + 
+        dnorm(as.numeric(theta_in["f5"]), mean = 0, sd = 0.1, log = TRUE) + 
+        dnorm(as.numeric(theta_in["f6"]), mean = 0, sd = 0.1, log = TRUE) + 
+        dnorm(as.numeric(theta_in["f7"]), mean = 0, sd = 0.1, log = TRUE) + 
+        dnorm(as.numeric(theta_in["f8"]), mean = 0, sd = 0.1, log = TRUE) + 
+        dnorm(as.numeric(theta_in["f10"]), mean = 0, sd = 0.1, log = TRUE) 
+      prior.grow = dunif(as.numeric(theta_in[["grow"]]),0,3,log = TRUE)
+      prior.relfit = dnorm(as.numeric(theta_in["rel_fit"]), mean = 1, sd = 0.1, log = TRUE) 
+      log.prior = prior.mu + prior.gamma + prior.f + prior.grow + prior.relfit
+    }
+    
+    # If fixed input - same rates for all elements
+    if(length(theta_in) == 5){
+      prior.mu = dunif(as.numeric(theta_in["mu"]), min = 0, max = 1, log = TRUE) 
+      prior.gamma = dunif(as.numeric(theta_in["gamma"]), min = 0, max = 1, log = TRUE) 
+      prior.f = dnorm(as.numeric(theta_in["f"]), mean = 0, sd = 0.1, log = TRUE) 
+      prior.grow = dunif(as.numeric(theta_in[["grow"]]),0,3,log = TRUE)
+      prior.relfit = dnorm(as.numeric(theta_in["rel_fit"]), mean = 1, sd = 0.1, log = TRUE) 
+      log.prior = prior.mu + prior.gamma + prior.f + prior.grow + prior.relfit
+    }
+    
+    # If fixed input - same rates for all elements and no fitness cost 
+    if(length(theta_in) == 4){
+      prior.mu = dunif(as.numeric(theta_in["mu"]), min = 0, max = 1, log = TRUE) 
+      prior.gamma = dunif(as.numeric(theta_in["gamma"]), min = 0, max = 1, log = TRUE) 
+      prior.grow = dunif(as.numeric(theta_in[["grow"]]),0,3,log = TRUE)
+      prior.relfit = dnorm(as.numeric(theta_in["rel_fit"]), mean = 1, sd = 0.1, log = TRUE) 
+      log.prior = prior.mu + prior.gamma + prior.grow + prior.relfit
+    }
+    
+    
+    # If fixed input - same rates for phage vs plasmids
+    if(length(theta_in) == 8){
+      prior.mu = dunif(as.numeric(theta_in["mu_phage"]), min = 0, max = 1, log = TRUE)  + dunif(as.numeric(theta_in["mu_plasmid"]), min = 0, max = 1, log = TRUE) 
+      prior.gamma = dunif(as.numeric(theta_in["gamma_phage"]), min = 0, max = 1, log = TRUE) + dunif(as.numeric(theta_in["gamma_plasmid"]), min = 0, max = 1, log = TRUE) 
+      prior.f = dnorm(as.numeric(theta_in["f_phage"]), mean = 0, sd = 0.1, log = TRUE) + dnorm(as.numeric(theta_in["f_plasmid"]), mean = 0, sd = 0.1, log = TRUE)
+      prior.grow = dunif(as.numeric(theta_in[["grow"]]),0,3,log = TRUE)
+      prior.relfit = dnorm(as.numeric(theta_in["rel_fit"]), mean = 1, sd = 0.1, log = TRUE) 
+      log.prior = prior.mu + prior.gamma + prior.f + prior.grow + prior.relfit
+    }
+    
+    
+    # If fixed input - same loss/gain rates different fitness
+    if(length(theta_in) == 10){
+      prior.mu = dunif(as.numeric(theta_in["mu"]), min = 0, max = 1, log = TRUE) 
+      prior.gamma = dunif(as.numeric(theta_in["gamma"]), min = 0, max = 1, log = TRUE) 
+      prior.f = dnorm(as.numeric(theta_in["f2"]), mean = 0, sd = 0.1, log = TRUE) + 
+        dnorm(as.numeric(theta_in["f5"]), mean = 0, sd = 0.1, log = TRUE) + 
+        dnorm(as.numeric(theta_in["f6"]), mean = 0, sd = 0.1, log = TRUE) + 
+        dnorm(as.numeric(theta_in["f7"]), mean = 0, sd = 0.1, log = TRUE) + 
+        dnorm(as.numeric(theta_in["f8"]), mean = 0, sd = 0.1, log = TRUE) + 
+        dnorm(as.numeric(theta_in["f10"]), mean = 0, sd = 0.1, log = TRUE)
+      prior.grow = dunif(as.numeric(theta_in[["grow"]]),0,3,log = TRUE)
+      prior.relfit = dnorm(as.numeric(theta_in["rel_fit"]), mean = 1, sd = 0.1, log = TRUE) 
+      log.prior = prior.mu + prior.gamma + prior.f + prior.grow + prior.relfit
+    }
     
     #### Compare to data 
-    compare_dat <- likelihood_lookup_elements + likelihood_lookup_totals + 10 * likelihood_profile_end # add in a 10* weight for profile_end as otherwise only a small contribution relatively
+    compare_dat <- log.prior + likelihood_lookup_elements + likelihood_lookup_totals + 10 * likelihood_profile_end # add in a 10* weight for profile_end as otherwise only a small contribution relatively
   }else{compare_dat <- -Inf}
   
   # return log likelihood
@@ -680,7 +745,7 @@ run_sim_logPosterior_para <- function(theta_in){
   }
   
   # If just looking at the elements that move
-  if(length(theta_in) < 32 && length(theta_in) > 8){
+  if(length(theta_in) < 32 && length(theta_in) > 10){
     rate_loss <- as.numeric(c(0,theta_in["mu2"],0,0,theta_in["mu5"],theta_in["mu6"],theta_in["mu7"],theta_in["mu8"],0,theta_in["mu10"]))
     rate_gain <- as.numeric(c(0,theta_in["gamma2"],0,0,theta_in["gamma5"],theta_in["gamma6"],theta_in["gamma7"],theta_in["gamma8"],0,theta_in["gamma10"]))
     fitness_costs <- as.numeric(c(0,theta_in["f2"],0,0,theta_in["f5"],theta_in["f6"],theta_in["f7"],theta_in["f8"],0,theta_in["f10"]))
