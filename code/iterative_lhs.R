@@ -74,7 +74,7 @@ lhs_build_run <- function(init_values, limit, save_place, nsamples = 5000){
     }
     
     out <- run_sim_logPosterior(parameters)
-    if(abs(out)<10000){write.csv(out,paste0(ii,".csv"))} # don't keep infinite values
+    if(abs(out)<600){write.csv(out,paste0(ii,".csv"))} # don't keep infinite values no those bigger than 900
   }
   
   stopImplicitCluster()

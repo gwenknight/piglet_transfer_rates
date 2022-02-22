@@ -129,3 +129,17 @@ mcmc.trace.burned3 <- combine.mcmc(
 effectiveSize(mcmc.trace.burned3) # aiming for 200 - 1000, <100 bad 
 xyplot(mcmc.trace.burned3)
 
+## COMBINED runs - ? how combine mcmc? 
+# Issue with [[1]]
+out_final_new <- out_final
+out_final_new[[1]] <- out_final[[1]][1:3000,]
+library(runjags)
+mcmc.trace.burned4 <- combine.mcmc(
+  mcmc.objects = out_final_new,
+  thin = 1,
+  collapse.chains = TRUE,
+)
+#burnAndThin(rbind(out_final,out_final2, out_final3), burn = 1000)
+effectiveSize(mcmc.trace.burned3) # aiming for 200 - 1000, <100 bad 
+xyplot(mcmc.trace.burned3)
+
