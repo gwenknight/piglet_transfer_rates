@@ -33,6 +33,8 @@ limit1 = cbind(c(rep(0,2),rep(-0.5,1), rep(0,2)),c(rep(0.5,2),rep(0.5,1),3,1.5))
 m1 <- lhs_build_run(Initial.Values, limit = limit1, "lhs_all/sc1", nsamples = 1e4)
 m1$worked <- as.data.frame(m1$worked)
 colnames(m1$worked) <- c("ll", names(Initial.Values))
+setwd(here::here())
+write.csv(m1$worked, "fits/lhs_all/sc1/worked.csv")
 
 # Scen2
 Initial.Values = c(mu_phage = 0.01, mu_plasmid = 0.01, 
@@ -44,7 +46,8 @@ limit2 = cbind(c(rep(0,4),rep(-1,2), rep(0,2)),c(rep(1,4),rep(1,2),3,1.7))
 m2 <- lhs_build_run(Initial.Values, limit = limit2, "lhs_all/sc2", nsamples = 1e4)
 m2$worked <- as.data.frame(m2$worked)
 colnames(m2$worked) <- c("ll", names(Initial.Values))
-
+setwd(here::here())
+write.csv(m2$worked, "fits/lhs_all/sc2/worked.csv")
 
 # Scen3
 Initial.Values = c(mu = 0.01,
@@ -92,7 +95,17 @@ colnames(m4_nl$worked) <- c("ll", names(Initial.Values))
 
 ### Look at answers 
 ### Output
-best <- m3$worked %>% filter(ll == max(m3$worked$ll))
+ggplot(m2$worked, aes(x=ll)) + geom_density()
+cormat <- round(cor(m2$worked[,1:ncol(m2$worked)]),2)
+melted_cormat <- melt(cormat)
+ggplot(data = melted_cormat, aes(x=Var1, y=Var2, fill=value)) + 
+  geom_tile()
+library("PerformanceAnalytics")
+my_data <- m2$worked[,2:ncol(m2$worked)]
+chart.Correlation(my_data, histogram=TRUE, pch=19)
+
+best <- m2$worked %>% filter(ll == max(m2$worked$ll))
+best <- m2$worked %>% filter(round(ll,2) == round(-581.5651,2))
 out <- piglet_mrsa_movement(tsteps, best[-1], ini$bacteria, ini$difference_list)
 
 
@@ -140,19 +153,85 @@ if(!is.null(out$prev_predict)){
   # Could change sd etc if not close enough 
   likelihood_profile_end <- sum(log(dnorm(prof_end,mean = c(0.8,0.2,0.2), sd = 0.1)))
   
-  # Don't make -Inf possible
-  # if(nrow(profile_end) == 3 && total_end[2] > 0){
-  #   likelihood_profile_end <- profile_end %>% 
-  #     mutate(prop = value / c(total_end[1],total_end[2],total_end[2]),
-  #            cutoff = pmax(0,prop - 0.05),#c(0.8,0.2,0.2)), # more the better # not using -- too strict
-  #            likelihood = log(prop)) %>% summarise(sum(likelihood))} else{likelihood_profile_end <- -Inf}
+  #### Add in priors
+  # Set up for all - if para not there then 0 
+  if(length(best[-1]) < 32 && length(best[-1]) > 10){
+    prior.mu = dunif(as.numeric(best[-1]["mu2"]), min = 0, max = 1, log = TRUE) + 
+      dunif(as.numeric(best[-1]["mu5"]), min = 0, max = 1, log = TRUE) + 
+      dunif(as.numeric(best[-1]["mu6"]), min = 0, max = 1, log = TRUE) + 
+      dunif(as.numeric(best[-1]["mu7"]), min = 0, max = 1, log = TRUE) + 
+      dunif(as.numeric(best[-1]["mu8"]), min = 0, max = 1, log = TRUE) + 
+      dunif(as.numeric(best[-1]["mu10"]), min = 0, max = 1, log = TRUE)
+    prior.gamma = dunif(as.numeric(best[-1]["gamma2"]), min = 0, max = 1, log = TRUE) + 
+      dunif(as.numeric(best[-1]["gamma5"]), min = 0, max = 1, log = TRUE) + 
+      dunif(as.numeric(best[-1]["gamma6"]), min = 0, max = 1, log = TRUE) + 
+      dunif(as.numeric(best[-1]["gamma7"]), min = 0, max = 1, log = TRUE) + 
+      dunif(as.numeric(best[-1]["gamma8"]), min = 0, max = 1, log = TRUE) + 
+      dunif(as.numeric(best[-1]["gamma10"]), min = 0, max = 1, log = TRUE)
+    prior.f = dnorm(as.numeric(best[-1]["f2"]), mean = 0, sd = 0.1, log = TRUE) + 
+      dnorm(as.numeric(best[-1]["f5"]), mean = 0, sd = 0.1, log = TRUE) + 
+      dnorm(as.numeric(best[-1]["f6"]), mean = 0, sd = 0.1, log = TRUE) + 
+      dnorm(as.numeric(best[-1]["f7"]), mean = 0, sd = 0.1, log = TRUE) + 
+      dnorm(as.numeric(best[-1]["f8"]), mean = 0, sd = 0.1, log = TRUE) + 
+      dnorm(as.numeric(best[-1]["f10"]), mean = 0, sd = 0.1, log = TRUE) 
+    prior.grow = dunif(as.numeric(best[-1][["grow"]]),0,3,log = TRUE)
+    prior.relfit = dnorm(as.numeric(best[-1]["rel_fit"]), mean = 1, sd = 0.1, log = TRUE) 
+    log.prior = prior.mu + prior.gamma + prior.f + prior.grow + prior.relfit
+  }
+  
+  # If fixed input - same rates for all elements
+  if(length(best[-1]) == 5){
+    prior.mu = dunif(as.numeric(best[-1]["mu"]), min = 0, max = 1, log = TRUE) 
+    prior.gamma = dunif(as.numeric(best[-1]["gamma"]), min = 0, max = 1, log = TRUE) 
+    prior.f = dnorm(as.numeric(best[-1]["f"]), mean = 0, sd = 0.1, log = TRUE) 
+    prior.grow = dunif(as.numeric(best[-1][["grow"]]),0,3,log = TRUE)
+    prior.relfit = dnorm(as.numeric(best[-1]["rel_fit"]), mean = 1, sd = 0.1, log = TRUE) 
+    log.prior = prior.mu + prior.gamma + prior.f + prior.grow + prior.relfit
+  }
+  
+  # If fixed input - same rates for all elements and no fitness cost 
+  if(length(best[-1]) == 4){
+    prior.mu = dunif(as.numeric(best[-1]["mu"]), min = 0, max = 1, log = TRUE) 
+    prior.gamma = dunif(as.numeric(best[-1]["gamma"]), min = 0, max = 1, log = TRUE) 
+    prior.grow = dunif(as.numeric(best[-1][["grow"]]),0,3,log = TRUE)
+    prior.relfit = dnorm(as.numeric(best[-1]["rel_fit"]), mean = 1, sd = 0.1, log = TRUE) 
+    log.prior = prior.mu + prior.gamma + prior.grow + prior.relfit
+  }
+  
+  
+  # If fixed input - same rates for phage vs plasmids
+  if(length(best[-1]) == 8){
+    prior.mu = dunif(as.numeric(best[-1]["mu_phage"]), min = 0, max = 1, log = TRUE)  + dunif(as.numeric(best[-1]["mu_plasmid"]), min = 0, max = 1, log = TRUE) 
+    prior.gamma = dunif(as.numeric(best[-1]["gamma_phage"]), min = 0, max = 1, log = TRUE) + dunif(as.numeric(best[-1]["gamma_plasmid"]), min = 0, max = 1, log = TRUE) 
+    prior.f = dnorm(as.numeric(best[-1]["f_phage"]), mean = 0, sd = 0.1, log = TRUE) + dnorm(as.numeric(best[-1]["f_plasmid"]), mean = 0, sd = 0.1, log = TRUE)
+    prior.grow = dunif(as.numeric(best[-1][["grow"]]),0,3,log = TRUE)
+    prior.relfit = dnorm(as.numeric(best[-1]["rel_fit"]), mean = 1, sd = 0.1, log = TRUE) 
+    log.prior = prior.mu + prior.gamma + prior.f + prior.grow + prior.relfit
+  }
+  
+  
+  # If fixed input - same loss/gain rates different fitness
+  if(length(best[-1]) == 10){
+    prior.mu = dunif(as.numeric(best[-1]["mu"]), min = 0, max = 1, log = TRUE) 
+    prior.gamma = dunif(as.numeric(best[-1]["gamma"]), min = 0, max = 1, log = TRUE) 
+    prior.f = dnorm(as.numeric(best[-1]["f2"]), mean = 0, sd = 0.1, log = TRUE) + 
+      dnorm(as.numeric(best[-1]["f5"]), mean = 0, sd = 0.1, log = TRUE) + 
+      dnorm(as.numeric(best[-1]["f6"]), mean = 0, sd = 0.1, log = TRUE) + 
+      dnorm(as.numeric(best[-1]["f7"]), mean = 0, sd = 0.1, log = TRUE) + 
+      dnorm(as.numeric(best[-1]["f8"]), mean = 0, sd = 0.1, log = TRUE) + 
+      dnorm(as.numeric(best[-1]["f10"]), mean = 0, sd = 0.1, log = TRUE)
+    prior.grow = dunif(as.numeric(best[-1][["grow"]]),0,3,log = TRUE)
+    prior.relfit = dnorm(as.numeric(best[-1]["rel_fit"]), mean = 1, sd = 0.1, log = TRUE) 
+    log.prior = prior.mu + prior.gamma + prior.f + prior.grow + prior.relfit
+  }
   
   #### Compare to data 
-  compare_dat <- likelihood_lookup_elements + likelihood_lookup_totals + 10 * likelihood_profile_end # add in a 10* weight for profile_end as otherwise only a small contribution relatively
+  compare_dat <- log.prior + likelihood_lookup_elements + likelihood_lookup_totals + 10 * likelihood_profile_end # add in a 10* weight for profile_end as otherwise only a small contribution relatively
 }else{compare_dat <- -Inf}
 
 # return log likelihood
 compare_dat #### - 718 for mock data
+log.prior
 likelihood_lookup_elements
 likelihood_lookup_totals
 10*likelihood_profile_end

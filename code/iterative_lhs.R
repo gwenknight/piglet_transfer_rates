@@ -31,7 +31,7 @@ lhs_build_run <- function(init_values, limit, save_place, nsamples = 5000){
   write.csv(Y, "paraset.csv") # save parameter set
   
   #### Parallel
-  numCores = 4
+  numCores = 3
   registerDoParallel(numCores)
   
   foreach (ii=1:nsamples) %dopar% {
@@ -74,7 +74,7 @@ lhs_build_run <- function(init_values, limit, save_place, nsamples = 5000){
     }
     
     out <- run_sim_logPosterior(parameters)
-    if(abs(out)<600){write.csv(out,paste0(ii,".csv"))} # don't keep infinite values no those bigger than 900
+    if(abs(out)<1000){write.csv(out,paste0(ii,".csv"))} # don't keep infinite values no those bigger than 900
   }
   
   stopImplicitCluster()

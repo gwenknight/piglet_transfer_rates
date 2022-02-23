@@ -57,6 +57,11 @@ Initial.Values = rbind(c(mu = 0.2,
                    grow = 0.8, 
                    rel_fit = 1.2))
 
+Initial.Values = c(mu = 0.2,
+                         gamma = 0.4,
+                         f = 0.001, 
+                         grow = 2, 
+                         rel_fit = 0.5)
 # Check non-zero likelihood for start
 #out <- piglet_mrsa_movement(tsteps, Initial.Values, ini$bacteria, ini$difference_list)
 #run_sim_logPosterior(Initial.Values)
@@ -66,17 +71,18 @@ Initial.Values = rbind(c(mu = 0.2,
 
 
 ### Try 
-khaario_scn1_1 <- kernel_adapt(Sd = .0000000000000001,freq = 1, warmup = 500, ub = c(rep(0.5,2),rep(0.5,1),3,1.5),
-                             lb = c(rep(0,2),rep(-0.5,1), rep(0,2)))
+#khaario_scn1_1 <- kernel_adapt(Sd = .0000000000000001,freq = 1, warmup = 500, ub = c(rep(0.5,2),rep(0.5,1),3,1.5),
+                             #lb = c(rep(0,2),rep(-0.5,1), rep(0,2)))
+
+khaario_scn1_1 <- kernel_adapt(freq = 1, warmup = 500, ub = c(rep(0.5,2),rep(0.5,1),3,1.5),
+                               lb = c(rep(0,2),rep(-0.5,1), rep(0,2)))
 
 out_final1 <- fmcmc::MCMC(
   initial   = Initial.Values,                       # Automatically takes the last 2 points
-  fun       = run_sim_logPosterior_para, 
-  nsteps    = 1e4,                       # Increasing the sample size: about 6hrs for 5e3
+  fun       = run_sim_logPosterior, 
+  nsteps    = 1e3,                       # Increasing the sample size: about 6hrs for 5e3
   kernel    = khaario_scn1_1,
-  multicore = TRUE,
-  thin      = 1, 
-  nchains = 3
+  thin      = 1
 )
 
 # Save output
@@ -84,8 +90,9 @@ filename = gsub(c(" "), "_", format(as.POSIXct(Sys.time()), tz = "Europe/London"
 filename = gsub(":", "-", filename)
 
 write.csv(out_final1, here::here("fits/",paste0("scn1_a_",filename,"_","trace",".csv")))
+
 # if multiple chains
-save(out_final1, file= here::here("fits/",paste0("scn1_a_",filename,"_","trace",".csv")))
+#save(out_final1, file= here::here("fits/",paste0("scn1_a_",filename,"_","trace",".csv")))
 #model = load("FILEPATH")
 
 # Next 
@@ -95,9 +102,7 @@ out_final2 <- fmcmc::MCMC(
   fun       = run_sim_logPosterior_para, 
   nsteps    = 1e4,                       # Increasing the sample size: about 6hrs for 5e3
   kernel    = khaario_scn1_2, 
-  multicore = TRUE,
-  thin      = 1, 
-  nchains = 3
+  thin      = 1
 )
 
 # Save output
@@ -114,7 +119,7 @@ library("fitR")
 plotESSBurn(out_final1) # Burn in = 1000?
 plotESSBurn(out_final2) # Burn in = 100?
 
-mcmc.trace.burned1 <- burnAndThin(out_final1, burn = 2500)
+mcmc.trace.burned1 <- burnAndThin(out_final1, burn = 0)
 mcmc.trace.burned2 <- burnAndThin(out_final2, burn = 1000)
 mcmc.trace.burned3 <- burnAndThin(out_final3, burn = 1000)
 
@@ -137,7 +142,7 @@ effectiveSize(mcmc.trace.burned1) # aiming for 200 - 1000, <100 bad
 effectiveSize(mcmc.trace.burned2) # First chain better
 
 ### Fits?
-length(unique(mcmc.trace.burned[,"mu"]))
+length(unique(mcmc.trace.burned1[,"mu"]))
 plotPosteriorDensity(mcmc.trace.burned1)
 plotPosteriorDensity(mcmc.trace.burned2)
 
