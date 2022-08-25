@@ -1,7 +1,7 @@
 ### Iterative LHS
 # Takes in sample and limits - runs for this
 
-lhs_build_run <- function(init_values, limit, save_place, nsamples = 5000){
+lhs_build_run <- function(init_values, limit, save_place, nsamples = 5000, ranges = c(0,0)){
   # init_values = initial values to build LHS around
   # limit = how far around the init_value
   # save_place = where to 
@@ -18,6 +18,15 @@ lhs_build_run <- function(init_values, limit, save_place, nsamples = 5000){
     param_ranges <- as.data.frame(limit) # can input range 
   }
   colnames(param_ranges) <- c("min","max")
+  
+  # Compare to input ranges
+  if(is.null(dim(ranges))){ #if not inputted basically then set between 0 and 1
+    param_ranges[,1] = pmax(param_ranges[,1], 0)
+    param_ranges[,2] = pmin(param_ranges[,2], 1)
+  }else{
+    param_ranges[,1] = pmax(param_ranges[,1], ranges[,1])
+    param_ranges[,2] = pmin(param_ranges[,2], ranges[,2])
+  }
   
   # transform a Latin hypercube
   nparameters <- nrow(param_ranges)

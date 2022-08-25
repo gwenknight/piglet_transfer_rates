@@ -60,6 +60,8 @@ limit3 = cbind(c(rep(0,2),rep(-0.7,6), rep(0,2)), c(rep(0.7,2),rep(0.7,6),3,1.5)
 m3 <- lhs_build_run(Initial.Values, limit = limit3, "lhs_all/sc3", nsamples = 1e4)
 m3$worked <- as.data.frame(m3$worked)
 colnames(m3$worked) <- c("ll", names(Initial.Values))
+setwd(here::here())
+write.csv(m3$worked, "fits/lhs_all/sc3/worked.csv")
 
 
 # Scen4
@@ -75,7 +77,8 @@ limit4 = cbind(c(rep(0,12),rep(-1,6), rep(0,2)), c(rep(1,12),rep(1,6),3,1.5))
 m4 <- lhs_build_run(Initial.Values, limit = limit4, "lhs_all/sc4", nsamples = 1e4)
 m4$worked <- as.data.frame(m4$worked)
 colnames(m4$worked) <- c("ll", names(Initial.Values))
-
+setwd(here::here())
+write.csv(m4$worked, "fits/lhs_all/sc4/worked.csv")
 
 ## No loss 
 # Scen4
@@ -91,21 +94,24 @@ limit4_nl = cbind(c(rep(0,12),rep(-1,6), rep(0,2)), c(rep(0,6),rep(1,6),rep(1,6)
 m4_nl <- lhs_build_run(Initial.Values, limit = limit4_nl, "lhs_all/sc4_nl", nsamples = 1e4)
 m4_nl$worked <- as.data.frame(m4_nl$worked)
 colnames(m4_nl$worked) <- c("ll", names(Initial.Values))
+setwd(here::here())
+write.csv(m4_nl$worked, "fits/lhs_all/sc4_nl/worked.csv")
 
 
 ### Look at answers 
 ### Output
-ggplot(m2$worked, aes(x=ll)) + geom_density()
-cormat <- round(cor(m2$worked[,1:ncol(m2$worked)]),2)
+ggplot(m4$worked, aes(x=ll)) + geom_density()
+cormat <- round(cor(m4$worked[,1:ncol(m4$worked)]),2)
 melted_cormat <- melt(cormat)
 ggplot(data = melted_cormat, aes(x=Var1, y=Var2, fill=value)) + 
   geom_tile()
 library("PerformanceAnalytics")
-my_data <- m2$worked[,2:ncol(m2$worked)]
+my_data <- m4$worked[,2:ncol(m4$worked)]
 chart.Correlation(my_data, histogram=TRUE, pch=19)
 
-best <- m2$worked %>% filter(ll == max(m2$worked$ll))
-best <- m2$worked %>% filter(round(ll,2) == round(-581.5651,2))
+best <- m4$worked %>% filter(ll == max(m4$worked$ll))
+m4$worked %>% filter(ll > round(best$ll,-2))
+best <- m4$worked %>% filter(round(ll,2) == round(-595.00,2))
 out <- piglet_mrsa_movement(tsteps, best[-1], ini$bacteria, ini$difference_list)
 
 
