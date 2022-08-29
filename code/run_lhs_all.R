@@ -30,7 +30,7 @@ Initial.Values = c(mu = 0.01,
                    grow = 0.17, 
                    rel_fit = 0.99)
 limit1 = cbind(c(rep(0,2),rep(-0.5,1), rep(0,2)),c(rep(0.5,2),rep(0.5,1),3,1.5))
-m1 <- lhs_build_run(Initial.Values, limit = limit1, "lhs_all/sc1", nsamples = 1e4)
+m1 <- lhs_build_run(Initial.Values, limit = limit1, "lhs_all/sc1", nsamples = 100)
 m1$worked <- as.data.frame(m1$worked)
 colnames(m1$worked) <- c("ll", names(Initial.Values))
 setwd(here::here())

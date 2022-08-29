@@ -23,28 +23,34 @@ source("code/iterative_lhs.R")
 source("code/piglet_mrsa_functions.R")
 
 ### INITIAL CONDITON 1
-Initial.Values = c(mu = 0.01,
-                   gamma = 0.00000001,
-                   f = 0.000001, 
-                   grow = 0.17, 
-                   rel_fit = 0.99)
+## Best from full exploration 
+m1work <- read_csv("fits/lhs_all/sc1/worked.csv")[,-1]
+max(m1work$ll)
+ma <- m1work %>% filter(ll > -600, rel_fit < 1, f < 0)
+m <- as.numeric(ma[6,])
+
+Initial.Values = c(mu = m[2],
+                   gamma = m[3],
+                   f = m[4], 
+                   grow = m[5], 
+                   rel_fit = m[6])
 # check not -Inf
 # run_sim_logPosterior(Initial.Values) # -1122
 
 Scen = "scn1"
 
 #run LHS on this + / - 100%
-m1 <- lhs_build_run(Initial.Values, limit = 0.5, paste0(Scen,"/iv1"), nsamples = 1e4)
+m1 <- lhs_build_run(Initial.Values, limit = 0.5, paste0(Scen,"/iv1"), nsamples = 1e3, ranges = cbind(c(rep(0,2),rep(-0.5,1), rep(0,2)),c(rep(0.5,2),rep(0.5,1),3,1.5)))
 
 # Run LHS on this + / - 100% 
 new_iv = m1$max_ll_para
 names(new_iv) <- names(Initial.Values)
-m2 <- lhs_build_run(new_iv, 0.5, paste0(Scen,"/iv1_max"), nsamples = 1e4)
+m2 <- lhs_build_run(new_iv, 0.5, paste0(Scen,"/iv1_max"), nsamples = 1e3, ranges = cbind(c(rep(0,2),rep(-0.5,1), rep(0,2)),c(rep(0.5,2),rep(0.5,1),3,1.5)))
 
 # Run LHS on this + / - 100% 
 new_iv = m2$max_ll_para
 names(new_iv) <- names(Initial.Values)
-m3 <- lhs_build_run(new_iv, 0.5, paste0(Scen,"/iv1_max2"), nsamples = 1e4)
+m3 <- lhs_build_run(new_iv, 0.5, paste0(Scen,"/iv1_max2"), nsamples = 1e3, ranges = cbind(c(rep(0,2),rep(-0.5,1), rep(0,2)),c(rep(0.5,2),rep(0.5,1),3,1.5)))
 
 ## Zoom in on max
 all_worked = rbind(m1$worked,m2$worked,m3$worked)
@@ -52,15 +58,15 @@ all_worked = rbind(m1$worked,m2$worked,m3$worked)
 max_para <- as.numeric(all_worked[which.max(all_worked[,1]),2:ncol(all_worked)])
 names(max_para) <- names(Initial.Values)
 # + / - 50%
-mz_1 <- lhs_build_run(max_para, 2, paste0(Scen,"/ivz1"), nsamples = 1e4)
+mz_1 <- lhs_build_run(max_para, 2, paste0(Scen,"/ivz1"), nsamples = 1e3, ranges = cbind(c(rep(0,2),rep(-0.5,1), rep(0,2)),c(rep(0.5,2),rep(0.5,1),3,1.5)))
 # + / - 30% 
 new_iv = mz_1$max_ll_para
 names(new_iv) <- names(Initial.Values)
-mz_2 <- lhs_build_run(new_iv, 3, paste0(Scen,"/ivz2"), nsamples = 1e4)
+mz_2 <- lhs_build_run(new_iv, 3, paste0(Scen,"/ivz2"), nsamples = 1e3, ranges = cbind(c(rep(0,2),rep(-0.5,1), rep(0,2)),c(rep(0.5,2),rep(0.5,1),3,1.5)))
 # + / - 10% 
 new_iv = mz_2$max_ll_para
 names(new_iv) <- names(Initial.Values)
-mz_3 <- lhs_build_run(new_iv, 10, paste0(Scen,"/ivz3"), nsamples = 1e4)
+mz_3 <- lhs_build_run(new_iv, 10, paste0(Scen,"/ivz3"), nsamples = 1e3, ranges = cbind(c(rep(0,2),rep(-0.5,1), rep(0,2)),c(rep(0.5,2),rep(0.5,1),3,1.5)))
 
 # Combine all of above
 all_worked_with_zoom = as.data.frame(rbind(all_worked, 
@@ -87,12 +93,12 @@ ggplot(top_ll, aes(x = ll, y = value, group = name)) + geom_point(aes(col= facto
 
 #### Output
 best <- para_gn %>% filter(ll == max(para_gn$ll))
-out <- piglet_mrsa_movement(tsteps, best[-ncol(best)], ini$bacteria, ini$difference_list)
+out <- piglet_mrsa_movement(tsteps, best[-c(1,ncol(best))], ini$bacteria, ini$difference_list)
 
 
 ### Likelihood
 if(!is.null(out$prev_predict)){
-  
+  theta_in <- best[-c(1,ncol(best))]
   #### element prevalence from model (a)
   #c("SCCmec","phi6","SaPI","Tn916","phi2","p1","p2","p3","phi3","p4")
   model_outputp <- out$prev_predict %>% filter(variable %in% c("V2","V5","V6","V7","V8","V10"))
@@ -134,15 +140,80 @@ if(!is.null(out$prev_predict)){
   # Could change sd etc if not close enough 
   likelihood_profile_end <- sum(log(dnorm(prof_end,mean = c(0.8,0.2,0.2), sd = 0.1)))
   
-  # Don't make -Inf possible
-  # if(nrow(profile_end) == 3 && total_end[2] > 0){
-  #   likelihood_profile_end <- profile_end %>% 
-  #     mutate(prop = value / c(total_end[1],total_end[2],total_end[2]),
-  #            cutoff = pmax(0,prop - 0.05),#c(0.8,0.2,0.2)), # more the better # not using -- too strict
-  #            likelihood = log(prop)) %>% summarise(sum(likelihood))} else{likelihood_profile_end <- -Inf}
+  #### Add in priors
+  # Set up for all - if para not there then 0 
+  if(length(theta_in) < 32 && length(theta_in) > 10){
+    prior.mu = dunif(as.numeric(theta_in["mu2"]), min = 0, max = 1, log = TRUE) + 
+      dunif(as.numeric(theta_in["mu5"]), min = 0, max = 1, log = TRUE) + 
+      dunif(as.numeric(theta_in["mu6"]), min = 0, max = 1, log = TRUE) + 
+      dunif(as.numeric(theta_in["mu7"]), min = 0, max = 1, log = TRUE) + 
+      dunif(as.numeric(theta_in["mu8"]), min = 0, max = 1, log = TRUE) + 
+      dunif(as.numeric(theta_in["mu10"]), min = 0, max = 1, log = TRUE)
+    prior.gamma = dunif(as.numeric(theta_in["gamma2"]), min = 0, max = 1, log = TRUE) + 
+      dunif(as.numeric(theta_in["gamma5"]), min = 0, max = 1, log = TRUE) + 
+      dunif(as.numeric(theta_in["gamma6"]), min = 0, max = 1, log = TRUE) + 
+      dunif(as.numeric(theta_in["gamma7"]), min = 0, max = 1, log = TRUE) + 
+      dunif(as.numeric(theta_in["gamma8"]), min = 0, max = 1, log = TRUE) + 
+      dunif(as.numeric(theta_in["gamma10"]), min = 0, max = 1, log = TRUE)
+    prior.f = dnorm(as.numeric(theta_in["f2"]), mean = 0, sd = 0.1, log = TRUE) + 
+      dnorm(as.numeric(theta_in["f5"]), mean = 0, sd = 0.1, log = TRUE) + 
+      dnorm(as.numeric(theta_in["f6"]), mean = 0, sd = 0.1, log = TRUE) + 
+      dnorm(as.numeric(theta_in["f7"]), mean = 0, sd = 0.1, log = TRUE) + 
+      dnorm(as.numeric(theta_in["f8"]), mean = 0, sd = 0.1, log = TRUE) + 
+      dnorm(as.numeric(theta_in["f10"]), mean = 0, sd = 0.1, log = TRUE) 
+    prior.grow = dunif(as.numeric(theta_in[["grow"]]),0,3,log = TRUE)
+    prior.relfit = dnorm(as.numeric(theta_in["rel_fit"]), mean = 1, sd = 0.1, log = TRUE) 
+    log.prior = prior.mu + prior.gamma + prior.f + prior.grow + prior.relfit
+  }
+  
+  # If fixed input - same rates for all elements
+  if(length(theta_in) == 5){
+    prior.mu = dunif(as.numeric(theta_in["mu"]), min = 0, max = 1, log = TRUE) 
+    prior.gamma = dunif(as.numeric(theta_in["gamma"]), min = 0, max = 1, log = TRUE) 
+    prior.f = dnorm(as.numeric(theta_in["f"]), mean = 0, sd = 0.1, log = TRUE) 
+    prior.grow = dunif(as.numeric(theta_in[["grow"]]),0,3,log = TRUE)
+    prior.relfit = dnorm(as.numeric(theta_in["rel_fit"]), mean = 1, sd = 0.1, log = TRUE) 
+    log.prior = prior.mu + prior.gamma + prior.f + prior.grow + prior.relfit
+  }
+  
+  # If fixed input - same rates for all elements and no fitness cost 
+  if(length(theta_in) == 4){
+    prior.mu = dunif(as.numeric(theta_in["mu"]), min = 0, max = 1, log = TRUE) 
+    prior.gamma = dunif(as.numeric(theta_in["gamma"]), min = 0, max = 1, log = TRUE) 
+    prior.grow = dunif(as.numeric(theta_in[["grow"]]),0,3,log = TRUE)
+    prior.relfit = dnorm(as.numeric(theta_in["rel_fit"]), mean = 1, sd = 0.1, log = TRUE) 
+    log.prior = prior.mu + prior.gamma + prior.grow + prior.relfit
+  }
+  
+  
+  # If fixed input - same rates for phage vs plasmids
+  if(length(theta_in) == 8){
+    prior.mu = dunif(as.numeric(theta_in["mu_phage"]), min = 0, max = 1, log = TRUE)  + dunif(as.numeric(theta_in["mu_plasmid"]), min = 0, max = 1, log = TRUE) 
+    prior.gamma = dunif(as.numeric(theta_in["gamma_phage"]), min = 0, max = 1, log = TRUE) + dunif(as.numeric(theta_in["gamma_plasmid"]), min = 0, max = 1, log = TRUE) 
+    prior.f = dnorm(as.numeric(theta_in["f_phage"]), mean = 0, sd = 0.1, log = TRUE) + dnorm(as.numeric(theta_in["f_plasmid"]), mean = 0, sd = 0.1, log = TRUE)
+    prior.grow = dunif(as.numeric(theta_in[["grow"]]),0,3,log = TRUE)
+    prior.relfit = dnorm(as.numeric(theta_in["rel_fit"]), mean = 1, sd = 0.1, log = TRUE) 
+    log.prior = prior.mu + prior.gamma + prior.f + prior.grow + prior.relfit
+  }
+  
+  
+  # If fixed input - same loss/gain rates different fitness
+  if(length(theta_in) == 10){
+    prior.mu = dunif(as.numeric(theta_in["mu"]), min = 0, max = 1, log = TRUE) 
+    prior.gamma = dunif(as.numeric(theta_in["gamma"]), min = 0, max = 1, log = TRUE) 
+    prior.f = dnorm(as.numeric(theta_in["f2"]), mean = 0, sd = 0.1, log = TRUE) + 
+      dnorm(as.numeric(theta_in["f5"]), mean = 0, sd = 0.1, log = TRUE) + 
+      dnorm(as.numeric(theta_in["f6"]), mean = 0, sd = 0.1, log = TRUE) + 
+      dnorm(as.numeric(theta_in["f7"]), mean = 0, sd = 0.1, log = TRUE) + 
+      dnorm(as.numeric(theta_in["f8"]), mean = 0, sd = 0.1, log = TRUE) + 
+      dnorm(as.numeric(theta_in["f10"]), mean = 0, sd = 0.1, log = TRUE)
+    prior.grow = dunif(as.numeric(theta_in[["grow"]]),0,3,log = TRUE)
+    prior.relfit = dnorm(as.numeric(theta_in["rel_fit"]), mean = 1, sd = 0.1, log = TRUE) 
+    log.prior = prior.mu + prior.gamma + prior.f + prior.grow + prior.relfit
+  }
   
   #### Compare to data 
-  compare_dat <- likelihood_lookup_elements + likelihood_lookup_totals + 10 * likelihood_profile_end # add in a 10* weight for profile_end as otherwise only a small contribution relatively
+  compare_dat <- log.prior + likelihood_lookup_elements + likelihood_lookup_totals + 10 * likelihood_profile_end # add in a 10* weight for profile_end as otherwise only a small contribution relatively
 }else{compare_dat <- -Inf}
 
 # return log likelihood
@@ -172,12 +243,5 @@ g2 <- ggplot(totalsp, aes(x=time, y = value, group = interaction(time,name,paren
 g3 <- ggplot(out$all_results %>% filter(variable %in% profiles_needed_end), aes(x=time, y = value)) + geom_line(aes(col = variable)) + geom_vline(xintercept = tsteps) + 
   geom_hline(yintercept = c(0.05) * max(out$all_results$value)) + scale_color_manual(values = c("red","green","blue"), breaks = c(profiles_needed_end))
 
-### Everything
-#ev_m <- out$all_results%>% filter(value > 0) %>%
-#  group_by(time, parent) %>% mutate(total_t = sum(value), prop_t = value/total_t)
-#g3a <- ggplot(ev_m %>% filter(prop_t > 0.05), aes(x=time, y = value, group = variable)) + geom_line(aes(col = variable)) + theme(legend.position = "none") + facet_wrap(~parent)
-#
-#g3 <- ggplot(ev_m %>% filter(prop_t > 0.05), aes(x=time, y = value, group = variable))  + geom_bar(stat = "identity", position = "fill", aes(fill = interaction(factor(variable), factor(parent)))) + 
-#  theme(legend.position = "none") + facet_wrap(~parent)
-
 g1 / (g2 + g3)
+ggsave(paste0("fits/",Scen,"best.pdf"))

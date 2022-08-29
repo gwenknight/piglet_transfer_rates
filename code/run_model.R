@@ -15,6 +15,7 @@ library(patchwork)
 library(prodlim)
 library(ggforce)
 library(ggridges)
+library(sn) # skewed normal
 source("code/piglet_mrsa_functions.R")
 theme_set(theme_bw(base_size = 11))
 
@@ -123,7 +124,13 @@ if(!is.null(out$prev_predict)){
   if(total_end[1]>0){ prof_end[1] <-  prof_end[1]/total_end[1]}
   if(total_end[2]>0){ prof_end[2:3] <-  prof_end[2:3]/total_end[2]}
   # Could change sd etc if not close enough 
-  likelihood_profile_end <- sum(log(dnorm(prof_end,mean = c(0.8,0.2,0.2), sd = 0.5)))
+  #likelihood_profile_end <- sum(log(dnorm(prof_end,mean = c(0.8,0.2,0.2), sd = 0.5)))
+  likelihood_profile_end <- sum(log(dsn(prof_end,xi = c(0.735,0.14,0.14), omega = c(0.08,0.2,0.2), alpha = 4))) # Made into a skewed normal - to bias to going over these limits
+  # dsn(1,xi = c(0.735,0.14,0.14), omega = c(0.08,0.3,0.3), alpha = 4) # This skewed normal has density < 5% at 1
+  # dsn(1,xi = c(0.735,0.14,0.14), omega = c(0.08,0.3,0.3), alpha = 4) # and density < 1% (but > 0 to avoid -Inf) at 0
+  # mean(rsn(100000,xi = 0.735, omega = 0.08, alpha = 4)) # and 80%
+  # mean(rsn(100000,xi = 0.14, omega = 0.08, alpha = 4)) # or 20% as the mean value.
+  # The skew is fixed to be the same for both. 
   
   # Don't make -Inf possible
   # if(nrow(profile_end) == 3 && total_end[2] > 0){
@@ -161,8 +168,9 @@ g2 <- ggplot(totalsp, aes(x=time, y = value, group = interaction(time,name,paren
   geom_line(data = model_outputt, aes(x=time, y = total, group = parent, col = factor(parent)))
 
 g3 <- ggplot(out$all_results %>% filter(variable %in% profiles_needed_end), aes(x=time, y = value)) + geom_line(aes(col = variable)) + geom_vline(xintercept = tsteps) + 
-  geom_hline(yintercept = c(0.05) * max(out$all_results$value)) + scale_color_manual(values = c("red","green","blue"), breaks = c(profiles_needed_end))
+   geom_hline(yintercept = c(0.8, 0.2) * total_end) + scale_color_manual(values = c("red","green","blue"), breaks = c(profiles_needed_end))
 
+#geom_hline(yintercept = c(0.05, 0.2) * max(out$all_results$value))
 ### Everything
 #ev_m <- out$all_results%>% filter(value > 0) %>%
 #  group_by(time, parent) %>% mutate(total_t = sum(value), prop_t = value/total_t)

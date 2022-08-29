@@ -1,4 +1,4 @@
-#### code from Quentin - using transition matrix 
+#### Functions to run piglet mrsa function 
 
 ### Initial population set up 
 
@@ -368,7 +368,7 @@ piglet_mrsa_movement <- function(tsteps, parameters_in, bacteria, difference_lis
   #parameters for growth
   #nb that's just a logistic deterministic function in the model at the moment
   Nmax = 0.5 * 1e7
-  # Death rate: timestep currently 1 hr, replicate in 20min in optimal... this captures immune system killing? 10% die? 
+  # Death rate: This captures immune system killing = 10% die initially 
   death_rate <- 0.1
   
   # fitness cost - firstly without strain issues, then with human strain cost
