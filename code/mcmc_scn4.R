@@ -35,14 +35,23 @@ totals <- read.csv("data/totals_bug.csv")[,-1] %>% select(time,value, parent, li
 ini <- initial_piglet_setup(384)
 
 # parameters
-Initial.Values = c(mu2 = 2.58492135046923e-05, mu5 = 1.23694298645124e-07, mu6 = 0.0091543430464811, 
-                   mu7 = 5.63000577873516e-06, mu8 = 0.0100363784007989, mu10 = 0.00644058325472071, 
-                   gamma2 = 1.03260990391265e-05, gamma5 = 1.29510851107398e-06, 
-                   gamma6 = 7.43707130531284e-12, gamma7 = 9.90849379073332e-07, 
-                   gamma8 = 1.18084441913925e-08, gamma10 = 1.25138645913259e-12, 
-                   f2 = -0.222792921010004, f5 = -0.311241161192935, f6 = 0.635171096823821, 
-                   f7 = -0.172511628201815, f8 = 0.281506548980894, f10 = 0.781415083339214, 
-                   grow = 0.125465546487709, rel_fit = 1.08138114848714)
+Initial.Values = c(mu2 = 0, mu5 = 0, mu6 = 0, 
+                   mu7 = 0, mu8 = 0, mu10 = 0.1, 
+                   gamma2 = 0.01, gamma5 = 0.01, 
+                   gamma6 = 0.000000000001, gamma7 = 0.0005, 
+                   gamma8 = 0.000000000001, gamma10 = 0.00000001, 
+                   f2 = -0.4, f5 = -0.4, f6 = 0.5, 
+                   f7 = -0.5, f8 = 0.4, f10 = 0.4, 
+                   grow = 0.08, rel_fit = 0.95)
+
+# Initial.Values = c(mu2 = 2.58492135046923e-05, mu5 = 1.23694298645124e-07, mu6 = 0.0091543430464811, 
+#                    mu7 = 5.63000577873516e-06, mu8 = 0.0100363784007989, mu10 = 0.00644058325472071, 
+#                    gamma2 = 1.03260990391265e-05, gamma5 = 1.29510851107398e-06, 
+#                    gamma6 = 7.43707130531284e-12, gamma7 = 9.90849379073332e-07, 
+#                    gamma8 = 1.18084441913925e-08, gamma10 = 1.25138645913259e-12, 
+#                    f2 = -0.222792921010004, f5 = -0.311241161192935, f6 = 0.635171096823821, 
+#                    f7 = -0.172511628201815, f8 = 0.281506548980894, f10 = 0.781415083339214, 
+#                    grow = 0.125465546487709, rel_fit = 1.08138114848714)
 
 # breaks: was dividing by zero 
 # Initial.Values = c(mu2 = 0.0163, mu5 = 0.0147, mu6 = 0.0028, 
@@ -59,13 +68,15 @@ Initial.Values = c(mu2 = 2.58492135046923e-05, mu5 = 1.23694298645124e-07, mu6 =
 run_sim_logPosterior(Initial.Values)
 
 
-# # # out <- fmcmc::MCMC(
-# # #   initial = Initial.Values,
-# # #   fun     = run_sim_logPosterior,
-# # #   nsteps  = 1e3,
-# # #   kernel  = kernel_normal(scale = .0000001) 
-# # # )
-# # # plot(out[,1:3])
+out <- fmcmc::MCMC(
+  initial = Initial.Values,
+  fun     = run_sim_logPosterior,
+  nsteps  = 100e3,
+  kernel  = kernel_normal(scale = .0000001)
+)
+plot(out[-c(1:1000),])
+out <- as.data.frame(out) %>% mutate(run = seq(1:100e3)) %>% pivot_longer(cols = mu2:rel_fit)
+
 # # 
 # # 
 # # out <- fmcmc::MCMC(
