@@ -15,6 +15,7 @@ library(dplyr)
 library(Rfast)
 library(patchwork)
 library(prodlim)
+library(truncnorm)
 source("code/piglet_mrsa_functions.R")
 theme_set(theme_bw(base_size = 11))
 set.seed(42) # to get reproducible results
@@ -48,9 +49,8 @@ Initial.Values = c(mu = 0.01,
 run_sim_logPosterior(Initial.Values)
 
 
-
 samp <- MCMC(run_sim_logPosterior, 
-             n=1000, 
+             n=1e4, 
              init=Initial.Values, 
              scale=c(0.001, 0.000001, 0.000001, 0.0001, 0.000001),
              adapt=TRUE, 
@@ -58,7 +58,7 @@ samp <- MCMC(run_sim_logPosterior,
 
 samp.coda <- convert.to.coda(samp)
 class(samp.coda)
-write.csv(samp.coda, "fits/220125_scn1_second_1000.csv")
+write.csv(samp.coda, "fits/230227_scn1_1e4.csv") #"fits/220125_scn1_second_1000.csv"
 ## ----------------------
 ## use functions of package 'coda'
 require(coda)
