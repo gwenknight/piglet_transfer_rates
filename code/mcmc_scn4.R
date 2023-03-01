@@ -3,6 +3,7 @@
 ### Look at output all same
 
 library(tmvtnorm)
+library(truncnorm)
 library(tidyverse)
 library(here)
 library(coda)
@@ -35,8 +36,17 @@ totals <- read.csv("data/totals_bug.csv")[,-1] %>% select(time,value, parent, li
 ini <- initial_piglet_setup(384)
 
 # parameters
+# Initial.Values = c(mu2 = 0, mu5 = 0, mu6 = 0, 
+#                    mu7 = 0, mu8 = 0, mu10 = 0.1, 
+#                    gamma2 = 0.01, gamma5 = 0.01, 
+#                    gamma6 = 0.000000000001, gamma7 = 0.0005, 
+#                    gamma8 = 0.000000000001, gamma10 = 0.00000001, 
+#                    f2 = -0.4, f5 = -0.4, f6 = 0.5, 
+#                    f7 = -0.5, f8 = 0.4, f10 = 0.4, 
+#                    grow = 0.08, rel_fit = 0.95)
+
 Initial.Values = c(mu2 = 0, mu5 = 0, mu6 = 0, 
-                   mu7 = 0, mu8 = 0, mu10 = 0.1, 
+                   mu7 = 0.65, mu8 = 0, mu10 = 0.1, 
                    gamma2 = 0.01, gamma5 = 0.01, 
                    gamma6 = 0.000000000001, gamma7 = 0.0005, 
                    gamma8 = 0.000000000001, gamma10 = 0.00000001, 
@@ -68,12 +78,49 @@ Initial.Values = c(mu2 = 0, mu5 = 0, mu6 = 0,
 run_sim_logPosterior(Initial.Values)
 
 
-out <- fmcmc::MCMC(
+
+out2 <- fmcmc::MCMC(
+  initial = Initial.Values1,
+  fun     = run_sim_logPosterior,
+  nsteps  = 100,
+  kernel  = kernel_normal(scale =  1e-19)
+)
+plot(out2)
+
+
+ans2 <- fmcmc::MCMC(
+  initial = c(Initial.Values, Initial.Values + 1e-18),
+  fun     = run_sim_logPosterior,
+  nsteps  = 10000,
+  kernel  = kernel_normal(scale = 1e-17),
+  nchains = 2,                           # Multiple chains
+  conv_checker = convergence_gelman(200) # Checking for conv. every 200 steps
+)
+
+plot(ans2)
+
+khaario <- kernel_adapt(freq = 1, warmup = 500, eps = 1e-17)
+
+out_haario_1 <- fmcmc::MCMC(
+  initial   = Initial.Values,                       
+  fun       = run_sim_logPosterior, 
+  nsteps    = 10000,    # We will only run the chain for 100 steps                    
+  kernel    = khaario, # We passed the predefined kernel
+  thin      = 1,       # No thining here
+  nchains   = 1L,      # A single chain
+  multicore = FALSE    # Running in serial
+)
+
+out2 <- fmcmc::MCMC(
   initial = Initial.Values,
   fun     = run_sim_logPosterior,
-  nsteps  = 100e3,
-  kernel  = kernel_normal(scale = .0000001)
+  nsteps  = 500,
+  kernel  = kernel_ram()
 )
+plot(out2)
+
+tail(out)
+out[10e3,] - out[1,]
 plot(out[-c(1:1000),])
 out <- as.data.frame(out) %>% mutate(run = seq(1:100e3)) %>% pivot_longer(cols = mu2:rel_fit)
 
