@@ -578,7 +578,10 @@ run_sim_logPosterior <- function(theta_in){
     if(total_end[1]>0){ prof_end[1] <-  prof_end[1]/total_end[1]}
     if(total_end[2]>0){ prof_end[2:3] <-  prof_end[2:3]/total_end[2]}
     # Could change sd etc if not close enough 
-    likelihood_profile_end <- sum(log(dnorm(prof_end,mean = c(0.8,0.2,0.2), sd = 0.1)))
+    #likelihood_profile_end <- sum(log(dnorm(prof_end,mean = c(0.8,0.2,0.2), sd = 0.5)))
+    ## Strain 1 has to be mostly the parent strain! 
+    ## Strain 2: two profiles are highly dominant: sum of these has to be > 0.5
+    likelihood_profile_end <- log(dnorm(prof_end[1], mean = 0.975, sd = 0.0288)) + log(dtruncnorm(sum(prof_end[2:3]),a = 0, b = 1, mean = 0.75, sd = 0.17))
     
     #### Add in priors
     # Set up for all - if para not there then 0 
@@ -653,7 +656,7 @@ run_sim_logPosterior <- function(theta_in){
     }
     
     #### Compare to data 
-    compare_dat <- log.prior + likelihood_lookup_elements + likelihood_lookup_totals + 10 * likelihood_profile_end # add in a 10* weight for profile_end as otherwise only a small contribution relatively
+    compare_dat <- log.prior + likelihood_lookup_elements + likelihood_lookup_totals + 100 * likelihood_profile_end # add in a 10* weight for profile_end as otherwise only a small contribution relatively
   }else{compare_dat <- -Inf}
   
   # return log likelihood
@@ -1000,7 +1003,10 @@ run_sim_logPosterior_para <- function(theta_in){
     if(total_end[1]>0){ prof_end[1] <-  prof_end[1]/total_end[1]}
     if(total_end[2]>0){ prof_end[2:3] <-  prof_end[2:3]/total_end[2]}
     # Could change sd etc if not close enough 
-    likelihood_profile_end <- sum(log(dnorm(prof_end,mean = c(0.8,0.2,0.2), sd = 0.5)))
+    #likelihood_profile_end <- sum(log(dnorm(prof_end,mean = c(0.8,0.2,0.2), sd = 0.5)))
+    ## Strain 1 has to be mostly the parent strain! 
+    ## Strain 2: two profiles are highly dominant: sum of these has to be > 0.5
+    likelihood_profile_end <- log(dnorm(prof_end[1], mean = 0.975, sd = 0.0288)) + log(dtruncnorm(sum(prof_end[2:3]),a = 0, b = 1, mean = 0.75, sd = 0.17))
     
     # Don't make -Inf possible
     # if(nrow(profile_end) == 3 && total_end[2] > 0){
@@ -1010,7 +1016,8 @@ run_sim_logPosterior_para <- function(theta_in){
     #            likelihood = log(prop)) %>% summarise(sum(likelihood))} else{likelihood_profile_end <- -Inf}
     
     #### Compare to data 
-    compare_dat <- likelihood_lookup_elements + likelihood_lookup_totals + 10 * likelihood_profile_end # add in a 10* weight for profile_end as otherwise only a small contribution relatively
+    compare_dat <- likelihood_lookup_elements + likelihood_lookup_totals + 100 * likelihood_profile_end 
+    # add in a 100* weight for profile_end as otherwise only a small contribution relatively
   }else{compare_dat <- -Inf}
   
   # return log likelihood
@@ -1161,10 +1168,13 @@ plot_time_series <- function(out, plot_name){
   
   g1 <- ggplot(pigg_elements %>% filter(name %in% c("phi6","phi2","p1","p2","p3","p4")),
                aes(x=time, y = sum_prop, group = interaction(name, pig))) +
-    geom_line(aes(col = name, linetype = factor(pig)),size = 1.5, alpha = 0.4) +
-    geom_line(data = model_outputp, aes(x = time, y = prev, group = interaction(parent_strain,name))) +
+    geom_line(aes(col = name, linetype = factor(pig)),size = 1.5, alpha = 0.6) +
+    geom_line(data = model_outputp, aes(x = time, y = prev, group = interaction(parent_strain,name)),size = 1) +
     geom_point(aes(col = name),size = 1.5) +
     facet_wrap(name~parent_strain, ncol = 2) + 
+    scale_color_discrete("MGE") + 
+    scale_linetype_discrete("Piglet") + 
+    scale_y_continuous("Proportion of population", lim = c(0,1.1)) + 
     ggtitle(paste0("likelihood = ", round(compare_dat,3), "(",round(likelihood_lookup_elements,3),"+",
                    round(likelihood_lookup_totals,3),"+",round(likelihood_profile_end,3),")"))
   
