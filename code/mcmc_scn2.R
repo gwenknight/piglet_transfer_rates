@@ -51,10 +51,10 @@ run_sim_logPosterior(Initial.Values)
 out <- fmcmc::MCMC(
   initial = Initial.Values,
   fun     = run_sim_logPosterior,
-  nsteps  = 1e3,
+  nsteps  = 1e4,
   kernel  = kernel_normal(scale = .0000001) 
 )
-plot(out[,1:3])
+plot(out)
 
 
 out <- fmcmc::MCMC(
