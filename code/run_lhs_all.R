@@ -18,8 +18,11 @@ library(prodlim)
 library(ggforce)
 library(ggridges)
 library(patchwork)
+library(here)
+library(sn) # skewed normal
 theme_set(theme_bw(base_size = 11))
 
+setwd(here::here())
 source("code/iterative_lhs.R")
 source("code/piglet_mrsa_functions.R")
 
@@ -29,7 +32,8 @@ Initial.Values = c(mu = 0.01,
                    f = 0.000001, 
                    grow = 0.17, 
                    rel_fit = 0.99)
-limit1 = cbind(c(rep(0,2),rep(-0.5,1), rep(0,2)),c(rep(0.5,2),rep(0.5,1),3,1.5))
+limit1 = cbind(c(rep(0,2),rep(-0.5,1), rep(0,2)), # lower limits
+               c(rep(0.5,2),rep(0.5,1),3,1)) # upper limits 
 m1 <- lhs_build_run(Initial.Values, limit = limit1, "lhs_all/sc1", nsamples = 100)
 m1$worked <- as.data.frame(m1$worked)
 colnames(m1$worked) <- c("ll", names(Initial.Values))
@@ -65,16 +69,16 @@ write.csv(m3$worked, "fits/lhs_all/sc3/worked.csv")
 
 
 # Scen4
-Initial.Values = c(mu2 = 0.02, mu5 = 0.00005, mu6 = 0.00005,
-                   mu7 = 0.00005, mu8 = 0.00005, mu10 = 0.00005,
-                   gamma2 = 0.00005, gamma5 = 0.00005,
-                   gamma6 = 0.00005, gamma7 = 0.00005,
-                   gamma8 = 0.0000508, gamma10 = 0.00005,
-                   f2 = -0.00005, f5 = -0.00005, f6 = 0.00005,
-                   f7 = -0.00005, f8 = 0.00005, f10 = 0.00005,
-                   grow = 0.12, rel_fit = 1.08)
+Initial.Values =  c(mu2 = 0, mu5 = 0, mu6 = 0, 
+                    mu7 = 0.65, mu8 = 0, mu10 = 0.1, 
+                    gamma2 = 0.01, gamma5 = 0.01, 
+                    gamma6 = 0.000000000001, gamma7 = 0.0005, 
+                    gamma8 = 0.000000000001, gamma10 = 0.00000001, 
+                    f2 = -0.4, f5 = -0.4, f6 = 0.5, 
+                    f7 = -0.5, f8 = 0.4, f10 = 0.4, 
+                    grow = 0.08, rel_fit = 0.95)
 limit4 = cbind(c(rep(0,12),rep(-1,6), rep(0,2)), c(rep(1,12),rep(1,6),3,1.5))
-m4 <- lhs_build_run(Initial.Values, limit = limit4, "lhs_all/sc4", nsamples = 1e4)
+m4 <- lhs_build_run(Initial.Values, limit = limit4, "lhs_all/sc4", nsamples = 100)
 m4$worked <- as.data.frame(m4$worked)
 colnames(m4$worked) <- c("ll", names(Initial.Values))
 setwd(here::here())
