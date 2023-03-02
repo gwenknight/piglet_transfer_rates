@@ -1,0 +1,2 @@
+
+# script to run mcmc
