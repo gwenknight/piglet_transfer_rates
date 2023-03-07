@@ -7,6 +7,10 @@ piglet_mrsa_movement = function(tsteps, parameters_in, bacteria, difference_list
   # bacteria = initial distribution and all possible profiles
   # difference_list = possible transitions
   
+  #change to assign values to missing parameters based on how many not included
+  #start from most complete case
+  #eg if length is 5 then need to assign the fixed values to a whole bunch of non-defined params
+  
   # Assign parameter values
   if(length(parameters_in) == 32){
     
@@ -30,6 +34,7 @@ piglet_mrsa_movement = function(tsteps, parameters_in, bacteria, difference_list
     
     # If fixed input - same rates for all elements
     if(is.null(names(parameters_in))){stop("No names for parameters_in")}
+    
     rate_loss = as.numeric(c(0,parameters_in["mu"],0,0,parameters_in["mu"],parameters_in["mu"],parameters_in["mu"],parameters_in["mu"],0,parameters_in["mu"]))
     rate_gain = as.numeric(c(0,parameters_in["gamma"],0,0,parameters_in["gamma"],parameters_in["gamma"],parameters_in["gamma"],parameters_in["gamma"],0,parameters_in["gamma"]))
     fitness_costs = as.numeric(c(0,parameters_in["f"],0,0,parameters_in["f"],parameters_in["f"],parameters_in["f"],parameters_in["f"],0,parameters_in["f"]))
@@ -40,6 +45,7 @@ piglet_mrsa_movement = function(tsteps, parameters_in, bacteria, difference_list
     
     # If fixed input - same rates for all elements and no fitness cost 
     if(is.null(names(parameters_in))){stop("No names for parameters_in")}
+    
     rate_loss = as.numeric(c(0,parameters_in["mu"],0,0,parameters_in["mu"],parameters_in["mu"],parameters_in["mu"],parameters_in["mu"],0,parameters_in["mu"]))
     rate_gain = as.numeric(c(0,parameters_in["gamma"],0,0,parameters_in["gamma"],parameters_in["gamma"],parameters_in["gamma"],parameters_in["gamma"],0,parameters_in["gamma"]))
     fitness_costs = as.numeric(c(0,0,0,0,0,0,0,0,0,0))
@@ -50,6 +56,7 @@ piglet_mrsa_movement = function(tsteps, parameters_in, bacteria, difference_list
     
     # If fixed input - same rates for phage vs plasmids
     #c("SCCmec","phi6","SaPI","Tn916","phi2","p1","p2","p3","phi3","p4")
+    
     rate_loss = as.numeric(c(0,parameters_in["mu_phage"],0,0,parameters_in["mu_phage"],parameters_in["mu_plasmid"],parameters_in["mu_plasmid"],parameters_in["mu_plasmid"],0,parameters_in["mu_plasmid"]))
     rate_gain = as.numeric(c(0,parameters_in["gamma_phage"],0,0,parameters_in["gamma_phage"],parameters_in["gamma_plasmid"],parameters_in["gamma_plasmid"],parameters_in["gamma_plasmid"],0,parameters_in["gamma_plasmid"]))
     fitness_costs = as.numeric(c(0,parameters_in["f_phage"],0,0,parameters_in["f_phage"],parameters_in["f_plasmid"],parameters_in["f_plasmid"],parameters_in["f_plasmid"],0,parameters_in["f_plasmid"]))
@@ -60,11 +67,12 @@ piglet_mrsa_movement = function(tsteps, parameters_in, bacteria, difference_list
     
     # If fixed input - same loss/gain rates different fitness
     #c("SCCmec","phi6","SaPI","Tn916","phi2","p1","p2","p3","phi3","p4")
-    rate_loss = as.numeric(c(0,parameters_in["mu"],0,0,parameters_in["mu"],parameters_in["mu"],parameters_in["mu"],parameters_in["mu"],0,parameters_in["mu"]))
-    rate_gain = as.numeric(c(0,parameters_in["gamma"],0,0,parameters_in["gamma"],parameters_in["gamma"],parameters_in["gamma"],parameters_in["gamma"],0,parameters_in["gamma"]))
-    fitness_costs = as.numeric(c(0,parameters_in["f2"],0,0,parameters_in["f5"],parameters_in["f6"],parameters_in["f7"],parameters_in["f8"],0,parameters_in["f10"]))
-    growth_rate = as.numeric(parameters_in["grow"])
-    rel_fit_human = as.numeric(parameters_in["rel_fit"])
+    
+    rate_loss = as.numeric(c(0,parameters_in[1],0,0,parameters_in[1],parameters_in[1],parameters_in[1],parameters_in[1],0,parameters_in[1]))
+    rate_gain = as.numeric(c(0,parameters_in[2],0,0,parameters_in[2],parameters_in[2],parameters_in[2],parameters_in[2],0,parameters_in[2]))
+    fitness_costs = as.numeric(c(0,parameters_in[3],0,0,parameters_in[4],parameters_in[5],parameters_in[6],parameters_in[7],0,parameters_in[8]))
+    growth_rate = as.numeric(parameters_in[9])
+    rel_fit_human = as.numeric(parameters_in[10])
     
   } else stop("Length of parameters_in does not match any possible option.")
   
@@ -91,7 +99,7 @@ piglet_mrsa_movement = function(tsteps, parameters_in, bacteria, difference_list
   all_mge_prev = matrix(0, nrow = 2*tsteps, ncol = (ncol(bacteria)-2))
   
   # Final check on input parameters 
-  if(any(fitness_cost_all > 20) || growth_rate > 2.94){
+  if(any(fitness_cost_all > 20) || growth_rate > 3){
     print(c("Input error (fitness or growth)",fitness_cost_all))
     prev_predict = c()
     totl_predict = c()

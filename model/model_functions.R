@@ -1,7 +1,8 @@
 
-#model utility functions
+# Model utility functions
 
-initial_piglet_setup <- function(tsteps){
+# Creates the bacteria and differences matrices ####
+initial_piglet_setup = function(){
   #matrix to store all possible MGE combinations (ie all possible strains)
   #MGE1 presence / MGE2 presence / MGE3 presence / ... / freq / parent
   bacteria = cbind(rbind(as.matrix(expand.grid(rep(list(0:1), 10))),
@@ -10,12 +11,12 @@ initial_piglet_setup <- function(tsteps){
   # Initial conditions
   Pinit = t(c(1,1,1,1,1,1,1,1,0,0,0)) # pig adapted
   Qinit = t(c(0,0,0,0,0,0,0,0,1,1,0)) # human adapted
-  pw <- which(apply(bacteria, 1, function(x) return(all(x == Pinit))))
-  qw <- which(apply(bacteria, 1, function(x) return(all(x == Qinit))))
+  pw = which(apply(bacteria, 1, function(x) return(all(x == Pinit))))
+  qw = which(apply(bacteria, 1, function(x) return(all(x == Qinit))))
   
   # min and max pw / qw as same row exists in parent 1 and parent 2
-  bacteria[min(pw),ncol(bacteria)] <- 7 * 10^2 # start with all at P1
-  bacteria[max(qw),ncol(bacteria)] <- 7 * 10^2 # start with all at Q1
+  bacteria[min(pw),ncol(bacteria)] = 7 * 10^2 # start with all at P1
+  bacteria[max(qw),ncol(bacteria)] = 7 * 10^2 # start with all at Q1
   
   # Add in parent label
   bacteria = cbind(bacteria, c(rep(1, nrow(bacteria)/2), rep(2, nrow(bacteria)/2)))
@@ -57,6 +58,53 @@ initial_piglet_setup <- function(tsteps){
 }
 
 
+# Creates the vector of parameters for a given scenario ####
+define_parameters = function(scenario){
+  
+  if(scenario==1){
+    
+    parameters_in = c(mu = 0.1,
+                      gamma = 0.000000000001,
+                      f = 0.1, 
+                      grow = 0.08, 
+                      rel_fit = 0.95)
+    
+  } else if(scenario==2){
+    
+    parameters_in = c(mu_phage = 0.01, mu_plasmid = 0.01, 
+                      gamma_phage = 0.00000001,gamma_plasmid = 0.00000001,
+                      f_phage = 0.000001, f_plasmid = 0.00000001,
+                      grow = 0.17, 
+                      rel_fit = 0.99)
+    
+  } else if(scenario==3){
+    
+    parameters_in = c(mu = 0.01,
+                      gamma = 0.00000001,
+                      f2 = 0.000001, f5 = 0.000001, f6 = 0.000001, 
+                      f7 = 0.000001, f8 = 0.000001, f10 = 0.000001, 
+                      grow = 0.17, 
+                      rel_fit = 0.99)
+    
+  } else if(scenario==4){
+    
+    parameters_in = c(mu2 = 0, mu5 = 0, mu6 = 0, 
+                      mu7 = 0.65, mu8 = 0, mu10 = 0.1, 
+                      gamma2 = 0.01, gamma5 = 0.01, 
+                      gamma6 = 0.000000000001, gamma7 = 0.0005, 
+                      gamma8 = 0.000000000001, gamma10 = 0.00000001, 
+                      f2 = -0.4, f5 = -0.4, f6 = 0.5, 
+                      f7 = -0.5, f8 = 0.4, f10 = 0.4, 
+                      grow = 0.08, rel_fit = 0.95)
+    
+  } else stop("Invalid scenario selected, must be 1, 2, 3 or 4!")
+  
+  return(parameters_in)
+  
+}
+
+
+# Generates the circles profile plot ####
 plot_circles <- function(profiles, output_data, save = F, plot_name = ""){
   # profiles = ini$bacteria
   # output_data = time series from out (out$all_results)
@@ -150,6 +198,8 @@ plot_circles <- function(profiles, output_data, save = F, plot_name = ""){
   plot(g)
 }
 
+
+# Plots a time series of the data (not tested yet) ####
 plot_time_series <- function(out, plot_name){
   # out = all data from run 
   # plot_name = where to plot
