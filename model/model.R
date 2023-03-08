@@ -108,7 +108,7 @@ piglet_mrsa_movement = function(tsteps, parameters_in, bacteria, difference_list
     for(t in 2:tsteps){
       
       #here's where I'd put the death step, to randomly remove bacteria using rmultinom even before calculating MGE prev
-      #bacteria[,"freq"] = bacteria[,"freq"]-rmultinom(1, round(death_rate*sum(bacteria[,"freq"])), bacteria[,"freq"])
+      bacteria[,"freq"] = bacteria[,"freq"]-rmultinom(1, round(death_rate*sum(bacteria[,"freq"])), bacteria[,"freq"])
 
       #copy over the bacteria matrix to store new bacteria numbers as we go along
       new_bacteria = bacteria

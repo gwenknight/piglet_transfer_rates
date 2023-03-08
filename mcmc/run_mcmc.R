@@ -57,6 +57,10 @@ settings = list(iterations = 100)
 #run the mcmc
 out = runMCMC(bayesianSetup = bayesianSetup, settings = settings, sampler = "DE")
 
+## TODO:
+# - optimise likelihood function, currently too slow
+# - replace names with indices to access parameter vector
+
 summary(out)
 plot(out)
 getSample(out)

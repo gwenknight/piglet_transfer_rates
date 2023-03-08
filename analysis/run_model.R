@@ -13,7 +13,7 @@ source(here::here("Model", "model.R"))
 source(here::here("Model", "model_functions.R"))
 
 tsteps = 384
-scenario = 3
+scenario = 1
 
 init = initial_piglet_setup()
 parameters_in = define_parameters(scenario)
