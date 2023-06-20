@@ -12,7 +12,7 @@ piglet_mrsa_movement = function(tsteps, parameters_in, bacteria, difference_list
   #eg if length is 5 then need to assign the fixed values to a whole bunch of non-defined params
   
   # Assign parameter values
-  if(length(parameters_in) == 32){
+  if(length(parameters_in) == 32){ # Not included atm
     
     # If have rates for all 10 elements
     rate_loss = as.numeric(parameters_in[1:10])
@@ -88,6 +88,7 @@ piglet_mrsa_movement = function(tsteps, parameters_in, bacteria, difference_list
   death_rate = 0.1
   
   # fitness cost - firstly without strain issues, then with human strain cost
+  # Can be a sum of positive and negative values: fitness_costs_all could be negative (benefit)
   fitness_cost_all = rowSums(t(t(bacteria[,1:(ncol(bacteria)-2)]) * fitness_costs))
   fitness_cost_all = fitness_cost_all + c(rep(0, nrow(bacteria)/2),rep(1-rel_fit_human, nrow(bacteria)/2))
   
@@ -98,7 +99,7 @@ piglet_mrsa_movement = function(tsteps, parameters_in, bacteria, difference_list
   #summary matrix to store MGE prevalence at each timepoint in each parent
   all_mge_prev = matrix(0, nrow = 2*tsteps, ncol = (ncol(bacteria)-2))
   
-  # Final check on input parameters 
+  # Final check on input parameters  - upper bound on fitness
   if(any(fitness_cost_all > 20) || growth_rate > 3){
     print(c("Input error (fitness or growth)",fitness_cost_all))
     prev_predict = c()
@@ -107,7 +108,7 @@ piglet_mrsa_movement = function(tsteps, parameters_in, bacteria, difference_list
     
     for(t in 2:tsteps){
       
-      #here's where I'd put the death step, to randomly remove bacteria using rmultinom even before calculating MGE prev
+      # death randomly remove bacteria using rmultinom even before calculating MGE prev
       bacteria[,"freq"] = bacteria[,"freq"]-rmultinom(1, round(death_rate*sum(bacteria[,"freq"])), bacteria[,"freq"])
 
       #copy over the bacteria matrix to store new bacteria numbers as we go along
@@ -122,9 +123,8 @@ piglet_mrsa_movement = function(tsteps, parameters_in, bacteria, difference_list
       #(remember first 10 columns are the MGE profiles)
       MGE_prevalence = bacteria[,c(1:10)]*bacteria[,"freq"]
       MGE_prevalence_all = Rfast::colsums(MGE_prevalence)/tot_bacteria
-      #MGE_prevalence_1 = colsums(MGE_prevalence[1:nrow(bacteria)/2,])/sum(bacteria[1:nrow(bacteria)/2,"freq"]) # just in parent 1
-      #MGE_prevalence_2 = colsums(MGE_prevalence[(1+nrow(bacteria)/2):nrow(bacteria),])/sum(bacteria[(1+nrow(bacteria)/2):nrow(bacteria),"freq"]) # just in parent 2
       
+      # MGE prevalence in each parent strain
       if(sum(bacteria[1:(nrow(bacteria)/2),"freq"]) > 0){
         MGE_prevalence_1 = Rfast::colsums(MGE_prevalence[1:(nrow(bacteria)/2),])/sum(bacteria[1:(nrow(bacteria)/2),"freq"])
       } else { MGE_prevalence_1 = rep(0,10) }  # just in parent 1
@@ -136,17 +136,11 @@ piglet_mrsa_movement = function(tsteps, parameters_in, bacteria, difference_list
       all_mge_prev[(t-1),] = MGE_prevalence_1
       all_mge_prev[(tsteps) + (t-1),] = MGE_prevalence_2
       
-      
       #for each strain present
       present_strains = which(bacteria[,"freq"]>0)
       if(length(present_strains)>1) present_strains = sample(present_strains) # do sample to give random order otherwise prioritise parent 1 growth at stationary phase
       
       for(i in present_strains){
-        
-        # In order for new profiles to appear at the start of the timestep remove
-        # some of the existing strains - death - which will be replaced if lots of these remain
-        # Background constant: relative to growth rate which is fitted 
-        #new_bacteria[i,"freq"] = (1 - death_rate) * new_bacteria[i,"freq"] 
         
         #extract strain profile
         bacteria_profile = bacteria[i,-c(ncol(bacteria)-1, ncol(bacteria))]
