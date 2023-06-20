@@ -25,7 +25,7 @@ define_priors = function(parameters_in){
         dnorm(as.numeric(parameters_in["f8"]), mean = 0, sd = 0.1, log = TRUE) + 
         dnorm(as.numeric(parameters_in["f10"]), mean = 0, sd = 0.1, log = TRUE) 
       prior.grow = dunif(as.numeric(parameters_in["grow"]), min = 0, max = 3, log = TRUE)
-      prior.relfit = dnorm(as.numeric(parameters_in["rel_fit"]), mean = 1, sd = 0.1, log = TRUE) 
+      prior.relfit = dnorm(as.numeric(parameters_in["rel_fit"]), mean = 0.8, sd = 0.1, log = TRUE) 
       return(prior.mu+prior.gamma+prior.f+prior.grow+prior.relfit)
     }
     
@@ -64,7 +64,7 @@ define_priors = function(parameters_in){
       prior.gamma = dunif(as.numeric(parameters_in["gamma"]), min = 0, max = 1, log = TRUE) 
       prior.f = dnorm(as.numeric(parameters_in["f"]), mean = 0, sd = 0.1, log = TRUE) 
       prior.grow = dunif(as.numeric(parameters_in["grow"]), min = 0, max = 3, log = TRUE)
-      prior.relfit = dnorm(as.numeric(parameters_in["rel_fit"]), mean = 1, sd = 0.1, log = TRUE) 
+      prior.relfit = dnorm(as.numeric(parameters_in["rel_fit"]), mean = 0.8, sd = 0.1, log = TRUE) 
       return(prior.mu+prior.gamma+prior.f+prior.grow+prior.relfit)
     }
     
@@ -87,7 +87,7 @@ define_priors = function(parameters_in){
       prior.mu = dunif(as.numeric(parameters_in["mu"]), min = 0, max = 1, log = TRUE) 
       prior.gamma = dunif(as.numeric(parameters_in["gamma"]), min = 0, max = 1, log = TRUE) 
       prior.grow = dunif(as.numeric(parameters_in["grow"]), min = 0, max = 3, log = TRUE)
-      prior.relfit = dnorm(as.numeric(parameters_in["rel_fit"]), mean = 1, sd = 0.1, log = TRUE) 
+      prior.relfit = dnorm(as.numeric(parameters_in["rel_fit"]), mean = 0.8, sd = 0.1, log = TRUE) 
       return(prior.mu+prior.gamma+prior.grow+prior.relfit)
     }
     
@@ -113,7 +113,7 @@ define_priors = function(parameters_in){
       prior.f = dnorm(as.numeric(parameters_in["f_phage"]), mean = 0, sd = 0.1, log = TRUE) +
         dnorm(as.numeric(parameters_in["f_plasmid"]), mean = 0, sd = 0.1, log = TRUE)
       prior.grow = dunif(as.numeric(parameters_in["grow"]), min = 0, max = 3, log = TRUE)
-      prior.relfit = dnorm(as.numeric(parameters_in["rel_fit"]), mean = 1, sd = 0.1, log = TRUE)
+      prior.relfit = dnorm(as.numeric(parameters_in["rel_fit"]), mean = 0.8, sd = 0.1, log = TRUE)
       return(prior.mu+prior.gamma+prior.f+prior.grow+prior.relfit)
     }
     
@@ -145,7 +145,7 @@ define_priors = function(parameters_in){
         dnorm(as.numeric(parameters_in[7]), mean = 0, sd = 0.1, log = TRUE) + 
         dnorm(as.numeric(parameters_in[8]), mean = 0, sd = 0.1, log = TRUE)
       prior.grow = dunif(as.numeric(parameters_in[9]), min = 0, max = 3, log = TRUE)
-      prior.relfit = dnorm(as.numeric(parameters_in[10]), mean = 1, sd = 0.1, log = TRUE)
+      prior.relfit = dnorm(as.numeric(parameters_in[10]), mean = 0.8, sd = 0.1, log = TRUE)
       return(prior.mu+prior.gamma+prior.f+prior.grow+prior.relfit)
     }
     
