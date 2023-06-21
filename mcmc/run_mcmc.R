@@ -38,7 +38,7 @@ profiles_needed_end = c(which(profs == profile_end1.1),
 
 ## Define parameters based on scenario ###############
 
-scenario = 3
+scenario = 1
 parameters_in = define_parameters(scenario)
 
 
