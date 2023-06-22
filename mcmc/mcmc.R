@@ -69,13 +69,15 @@ define_priors = function(parameters_in){
     }
     
     sampler = function(n=1){
-      return(cbind(
+      cc <- cbind(
         runif(n, min = 0, max = 1), 
         runif(n, min = 0, max = 1), 
         rnorm(n, mean = 0, sd = 0.1), 
         runif(n, min = 0, max = 3),
         rnorm(n, mean = 1, sd = 0.1) 
-      ))
+      )
+      colnames(cc) <- names(parameters_in)
+      return(cc)
     }
     
     lower = c(0, 0, -1, 0, 0)
@@ -169,7 +171,7 @@ define_priors = function(parameters_in){
     
   } else stop("Invalid number of parameters!")
   
-  priors = createPrior(density = density,
+  priors = createPrior_gk(density = density,
                        sampler = sampler,
                        lower = lower, 
                        upper = upper,
@@ -187,7 +189,6 @@ run_sim_logPosterior = function(parameters_in){
   
   ## Run for these parameters
   out = piglet_mrsa_movement(tsteps, parameters_in, bacteria, difference_list)
-  
   
   ### Likelihood
   if(!is.null(out$prev_predict)){

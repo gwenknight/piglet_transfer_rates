@@ -38,7 +38,7 @@ difference_list = init$difference_list
 parameters_in = define_parameters(scenario)
 
 #### Run model 
-results = piglet_mrsa_movement(tsteps, parameters_in, bacteria, difference_list)
+results = piglet_mrsa_movement(10*tsteps, parameters_in, bacteria, difference_list)
 
 # ggplot(results$totl_predict) +
 #   geom_line(aes(time, total, colour = as.factor(parent))) +
