@@ -30,7 +30,7 @@ define_priors = function(parameters_in){
     }
     
     sampler = function(n=1){
-      return(cbind(
+      cc <- cbind(
         runif(n, min = 0, max = 1), 
         runif(n, min = 0, max = 1),
         runif(n, min = 0, max = 1), 
@@ -51,7 +51,9 @@ define_priors = function(parameters_in){
         rnorm(n, mean = 0, sd = 0.1), 
         runif(n, min = 0, max = 3),
         rnorm(n, mean = 1, sd = 0.1) 
-      ))
+      )
+      colnames(cc) <- names(parameters_in)
+      return(cc)
     }
     
     lower = c(rep(0, 12), rep(-1, 6), 0, 0)
@@ -69,13 +71,15 @@ define_priors = function(parameters_in){
     }
     
     sampler = function(n=1){
-      return(cbind(
+      cc <- cbind(
         runif(n, min = 0, max = 1), 
         runif(n, min = 0, max = 1), 
         rnorm(n, mean = 0, sd = 0.1), 
         runif(n, min = 0, max = 3),
         rnorm(n, mean = 1, sd = 0.1) 
-      ))
+      )
+      colnames(cc) <- names(parameters_in)
+      return(cc)
     }
     
     lower = c(0, 0, -1, 0, 0)
@@ -92,12 +96,14 @@ define_priors = function(parameters_in){
     }
     
     sampler = function(n=1){
-      return(cbind(
+      cc <- cbind(
         runif(n, min = 0, max = 1), 
         runif(n, min = 0, max = 1), 
         runif(n, min = 0, max = 3),
         rnorm(n, mean = 1, sd = 0.1) 
-      ))
+      )
+      colnames(cc) <- names(parameters_in)
+      return(cc)
     }
     
     lower = c(0, 0, 0, 0)
@@ -118,7 +124,7 @@ define_priors = function(parameters_in){
     }
     
     sampler = function(n=1){
-      return(cbind(
+      cc <- cbind(
         runif(n, min = 0, max = 1), 
         runif(n, min = 0, max = 1), 
         runif(n, min = 0, max = 1), 
@@ -127,7 +133,9 @@ define_priors = function(parameters_in){
         rnorm(n, mean = 0, sd = 0.1),
         runif(n, min = 0, max = 3),
         rnorm(n, mean = 1, sd = 0.1)
-      ))
+      )
+      colnames(cc) <- names(parameters_in)
+      return(cc)
     }
     
     lower = c(0, 0, 0, 0, -1, -1, 0, 0)
@@ -150,7 +158,7 @@ define_priors = function(parameters_in){
     }
     
     sampler = function(n=1){
-      return(cbind(
+      cc <- cbind(
         runif(n, min = 0, max = 1), 
         runif(n, min = 0, max = 1), 
         rnorm(n, mean = 0, sd = 0.1),
@@ -161,7 +169,9 @@ define_priors = function(parameters_in){
         rnorm(n, mean = 0, sd = 0.1),
         runif(n, min = 0, max = 3),
         rnorm(n, mean = 1, sd = 0.1)
-      ))
+      )
+      colnames(cc) <- names(parameters_in)
+      return(cc)
     }
     
     lower = c(0, 0, -1, -1, -1, -1, -1, -1, 0, 0)
@@ -169,11 +179,11 @@ define_priors = function(parameters_in){
     
   } else stop("Invalid number of parameters!")
   
-  priors = createPrior(density = density,
-                       sampler = sampler,
-                       lower = lower, 
-                       upper = upper,
-                       best = parameters_in)
+  priors = createPrior_gk(density = density,
+                          sampler = sampler,
+                          lower = lower, 
+                          upper = upper,
+                          best = parameters_in)
   
   return(priors)
   
@@ -187,7 +197,6 @@ run_sim_logPosterior = function(parameters_in){
   
   ## Run for these parameters
   out = piglet_mrsa_movement(tsteps, parameters_in, bacteria, difference_list)
-  
   
   ### Likelihood
   if(!is.null(out$prev_predict)){
@@ -230,6 +239,9 @@ run_sim_logPosterior = function(parameters_in){
       summarise(total = sum(value)) %>%
       pull(total)
     
+    # Sometimes one parent lost: then only one value in total_end
+    if(length(total_end)==1){parent_at_end = as.numeric(out$all_results %>% filter(time == tsteps) %>% select(parent) %>% unique())}
+    
     ## Need to be present at > 80% and > 20% for parent 1 and parent 2 respectively 
     profile_end = out$all_results %>%
       filter(time == tsteps,
@@ -248,8 +260,13 @@ run_sim_logPosterior = function(parameters_in){
     }
     
     # If total_end = 0 then prof_end will be 0 too 
-    if(total_end[1]>0) prof_end[1] = prof_end[1]/total_end[1]
-    if(total_end[2]>0) prof_end[2:3] = prof_end[2:3]/total_end[2]
+    if(length(total_end) > 1){
+      if(total_end[1]>0) prof_end[1] = prof_end[1]/total_end[1]
+      if(total_end[2]>0) prof_end[2:3] = prof_end[2:3]/total_end[2]
+    } else {
+      if(parent_at_end == 1){prof_end[1] = prof_end[1]/total_end[1]; prof_end[2:3] = 0}
+      if(parent_at_end == 2){prof_end[1] = 0; prof_end[2:3] = prof_end[2:3]/total_end[2]}
+    }
     # Could change sd etc if not close enough 
     #likelihood_profile_end <- sum(log(dnorm(prof_end,mean = c(0.8,0.2,0.2), sd = 0.5)))
     ## Strain 1 has to be mostly the parent strain! 

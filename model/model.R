@@ -11,6 +11,7 @@ piglet_mrsa_movement = function(tsteps, parameters_in, bacteria, difference_list
   #start from most complete case
   #eg if length is 5 then need to assign the fixed values to a whole bunch of non-defined params
   
+
   # Assign parameter values
   if(length(parameters_in) == 32){ # Not included atm
     
@@ -23,6 +24,11 @@ piglet_mrsa_movement = function(tsteps, parameters_in, bacteria, difference_list
     
   } else if(length(parameters_in) < 32 && length(parameters_in) > 10){
     
+    ## 
+    if(is.null(names(parameters_in))){names(parameters_in) <- c("mu2","mu5","mu6","mu7","mu8","mu10",
+                                                                    "gamma2","gamma5","gamma6","gamma7","gamma8","gamma10",
+                                                                    "f2","f5","f6","f7","f8","f10","grow","rel_fit")}
+    
     # If just looking at the elements that move
     rate_loss = as.numeric(c(0,parameters_in["mu2"],0,0,parameters_in["mu5"],parameters_in["mu6"],parameters_in["mu7"],parameters_in["mu8"],0,parameters_in["mu10"]))
     rate_gain = as.numeric(c(0,parameters_in["gamma2"],0,0,parameters_in["gamma5"],parameters_in["gamma6"],parameters_in["gamma7"],parameters_in["gamma8"],0,parameters_in["gamma10"]))
@@ -33,7 +39,9 @@ piglet_mrsa_movement = function(tsteps, parameters_in, bacteria, difference_list
   } else if(length(parameters_in) == 5){
     
     # If fixed input - same rates for all elements
-    if(is.null(names(parameters_in))){stop("No names for parameters_in")}
+    #if(is.null(names(parameters_in))){stop("No names for parameters_in")}
+    if(is.null(names(parameters_in))){names(parameters_in) <- c("mu","gamma","f","grow","rel_fit")}
+    
     
     rate_loss = as.numeric(c(0,parameters_in["mu"],0,0,parameters_in["mu"],parameters_in["mu"],parameters_in["mu"],parameters_in["mu"],0,parameters_in["mu"]))
     rate_gain = as.numeric(c(0,parameters_in["gamma"],0,0,parameters_in["gamma"],parameters_in["gamma"],parameters_in["gamma"],parameters_in["gamma"],0,parameters_in["gamma"]))
@@ -109,11 +117,12 @@ piglet_mrsa_movement = function(tsteps, parameters_in, bacteria, difference_list
     for(t in 2:tsteps){
       
       # death randomly remove bacteria using rmultinom even before calculating MGE prev
-      bacteria[,"freq"] = bacteria[,"freq"]-rmultinom(1, round(death_rate*sum(bacteria[,"freq"])), bacteria[,"freq"])
+      # make sure not negative using pmax
+      bacteria[,"freq"] = pmax(0,bacteria[,"freq"] - rmultinom(1, round(death_rate*sum(bacteria[,"freq"])), bacteria[,"freq"]))
 
       #copy over the bacteria matrix to store new bacteria numbers as we go along
       new_bacteria = bacteria
-      new_bacteria[,"freq"] = 0
+      #new_bacteria[,"freq"] = 0
       
       #we can already do some calculations here
       #total bacteria in environment currently:
@@ -144,13 +153,14 @@ piglet_mrsa_movement = function(tsteps, parameters_in, bacteria, difference_list
         
         #extract strain profile
         bacteria_profile = bacteria[i,-c(ncol(bacteria)-1, ncol(bacteria))]
-        
+        #if(any(new_bacteria[,"freq"] < 0)){print("here1")}
         #loss proba is either the loss probability or 0 (if the MGE is already absent in that strain)
         lose_probas = pmin(rate_loss, bacteria_profile)
         
         #gain proba is either a density dependent proba (rate*n_recipient*n_donors/all_bacteria)
         #   or 0 (if MGE is already present in that strain)
         #print(c(rate_gain, bacteria[i,"freq"],"MGE",MGE_prevalence_all))
+
         gain_probas = 1-exp(-rate_gain*bacteria[i,"freq"]*MGE_prevalence_all) 
         gain_probas = pmin(gain_probas, 1-bacteria_profile)
         
@@ -176,28 +186,43 @@ piglet_mrsa_movement = function(tsteps, parameters_in, bacteria, difference_list
         #something to look into...
         probas[Rfast::rowsums(differences[,1:10])==0] = max(0, 1 - sum(probas))
         #print(c("probas",probas,"gain",gain_probas))
-        
+       # if(any(new_bacteria[,"freq"] < 0)){print("here first")}
+        #print(c("s2",sum(new_bacteria[,"freq"])))
         #use multinomial sampling to decide what the bacteria from strain i now become,
         # then add that amount to the updated matrix of bacteria numbers
+        # and remove them from original bacteria
         #here's where the "id" column in "differences" is useful: to align the indexing
         # between "differences" (which only contains valid transitions for strain i) and
         # "new_bacteria" (which contains all 2048 possible strains)
         probas[is.na(probas)] = 0 # got na errors in rmultinom - fix with this for now
         if(sum(probas) > 0){#print(parameters_in); break}
-          new_bacteria[differences[,"id"],"freq"] = new_bacteria[differences[,"id"],"freq"] +
-            rmultinom(1, bacteria[i, "freq"], probas) # due to discrete time step, don't want to end up with negative bugs as more than Nmax at some point
-        } else {
-          new_bacteria[i,"freq"] = bacteria[i,"freq"]
-        }
+          moving <- rmultinom(1, bacteria[i, "freq"], probas)  # due to discrete time step, don't want to end up with negative bugs as more than Nmax at some point
+          new_bacteria[differences[,"id"],"freq"] = new_bacteria[differences[,"id"],"freq"] + moving # add to new place
+          new_bacteria[i,"freq"] = new_bacteria[i,"freq"] - sum(moving) # remove from original place
+        } #else {
+        #   new_bacteria[i,"freq"] = bacteria[i,"freq"]
+        # }
+        if(sum(new_bacteria[,"freq"]) > Nmax){print(c("big",sum(new_bacteria[,"freq"])))}
+        #if(any(new_bacteria[,"freq"] < 0)){print(c(fitness_cost_all[i],"herealready"))}
         
         #if some bacteria remain in their original strain i, they now grow
         #currently just a deterministic logistic calculation
         # Need to add in fitness cost of elements: assume additive atm 
         # the use of min with new_bacteria is nice here, to essentially "stop" further growth once Nmax is reached
-        new_bacteria[i,"freq"] = new_bacteria[i,"freq"] +
-          min((Nmax - sum(new_bacteria[,"freq"])), round(bacteria[i,"freq"] * (max(0,(1 - fitness_cost_all[i]))) * growth_rate * (1 - tot_bacteria/Nmax)))
+        #print(new_bacteria[i,"freq"])
+        #print(sum(new_bacteria[,"freq"]))
+        new_bacteria[i,"freq"] = new_bacteria[i,"freq"] + # what was in the bacteria profile before + new ones 
+           min( (Nmax - sum(new_bacteria[,"freq"])), # has to be less than the remaining space 
+            round(bacteria[i,"freq"] * (max(0,(1 - fitness_cost_all[i]))) * growth_rate * (1 - sum(new_bacteria[,"freq"])/Nmax))) # growth
         
+        #print(c(new_bacteria[i,"freq"]))
+        if(any(new_bacteria[,"freq"] < 0)){print(c(growth_rate, fitness_cost_all[i],"here",new_bacteria[i,"freq"],
+                                                   round(bacteria[i,"freq"] * (max(0,(1 - fitness_cost_all[i]))) * growth_rate * (1 - tot_bacteria/Nmax)),
+                                                   Nmax, sum(new_bacteria[,"freq"]),
+                                                 min( (Nmax - sum(new_bacteria[,"freq"])), # has to be less than the remaining space 
+                                                      round(bacteria[i,"freq"] * (max(0,(1 - fitness_cost_all[i]))) * growth_rate * (1 - sum(new_bacteria[,"freq"])/Nmax)))))}
         #print(c(sum(bacteria[,"freq"]),round(bacteria[i,"freq"] * (1 - fitness_cost_all[i]) * growth_rate * (1 - sum(bacteria[,"freq"])/Nmax))))
+        #print(c("s",sum(new_bacteria[,"freq"])))
       }
       
       #update main bacteria matrix
@@ -233,6 +258,7 @@ piglet_mrsa_movement = function(tsteps, parameters_in, bacteria, difference_list
     all_results$time = c(1:nrow(all_results))
     all_results = reshape2::melt(all_results, id.vars = "time")
     all_results$parent = c(rep(1, tsteps * nrow(bacteria)/2), rep(2, tsteps * nrow(bacteria)/2))
+    all_results = all_results %>% filter(value > 0)
     
     # Totals - want prevalence of each parent strains
     totl_predict = all_results %>%
