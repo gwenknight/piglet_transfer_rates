@@ -122,7 +122,7 @@ piglet_mrsa_movement = function(tsteps, parameters_in, bacteria, difference_list
 
       #copy over the bacteria matrix to store new bacteria numbers as we go along
       new_bacteria = bacteria
-      new_bacteria[,"freq"] = 0
+      #new_bacteria[,"freq"] = 0
       
       #we can already do some calculations here
       #total bacteria in environment currently:
@@ -153,7 +153,7 @@ piglet_mrsa_movement = function(tsteps, parameters_in, bacteria, difference_list
         
         #extract strain profile
         bacteria_profile = bacteria[i,-c(ncol(bacteria)-1, ncol(bacteria))]
-        if(any(new_bacteria[,"freq"] < 0)){print("here1")}
+        #if(any(new_bacteria[,"freq"] < 0)){print("here1")}
         #loss proba is either the loss probability or 0 (if the MGE is already absent in that strain)
         lose_probas = pmin(rate_loss, bacteria_profile)
         
@@ -185,35 +185,43 @@ piglet_mrsa_movement = function(tsteps, parameters_in, bacteria, difference_list
         #something to look into...
         probas[Rfast::rowsums(differences[,1:10])==0] = max(0, 1 - sum(probas))
         #print(c("probas",probas,"gain",gain_probas))
-        if(any(new_bacteria[,"freq"] < 0)){print("here first")}
-        
+       # if(any(new_bacteria[,"freq"] < 0)){print("here first")}
+        #print(c("s2",sum(new_bacteria[,"freq"])))
         #use multinomial sampling to decide what the bacteria from strain i now become,
         # then add that amount to the updated matrix of bacteria numbers
+        # and remove them from original bacteria
         #here's where the "id" column in "differences" is useful: to align the indexing
         # between "differences" (which only contains valid transitions for strain i) and
         # "new_bacteria" (which contains all 2048 possible strains)
         probas[is.na(probas)] = 0 # got na errors in rmultinom - fix with this for now
         if(sum(probas) > 0){#print(parameters_in); break}
-          new_bacteria[differences[,"id"],"freq"] = new_bacteria[differences[,"id"],"freq"] +
-            rmultinom(1, bacteria[i, "freq"], probas) # due to discrete time step, don't want to end up with negative bugs as more than Nmax at some point
-        } else {
-          new_bacteria[i,"freq"] = bacteria[i,"freq"]
-        }
-        if(sum(new_bacteria[,"freq"] > Nmax)){print(sum(new_bacteria[,"freq"]))}
-        if(any(new_bacteria[,"freq"] < 0)){print(c(fitness_cost_all[i],"herealready"))}
+          moving <- rmultinom(1, bacteria[i, "freq"], probas)  # due to discrete time step, don't want to end up with negative bugs as more than Nmax at some point
+          new_bacteria[differences[,"id"],"freq"] = new_bacteria[differences[,"id"],"freq"] + moving # add to new place
+          new_bacteria[i,"freq"] = new_bacteria[i,"freq"] - sum(moving) # remove from original place
+        } #else {
+        #   new_bacteria[i,"freq"] = bacteria[i,"freq"]
+        # }
+        if(sum(new_bacteria[,"freq"]) > Nmax){print(c("big",sum(new_bacteria[,"freq"])))}
+        #if(any(new_bacteria[,"freq"] < 0)){print(c(fitness_cost_all[i],"herealready"))}
+        
         #if some bacteria remain in their original strain i, they now grow
         #currently just a deterministic logistic calculation
         # Need to add in fitness cost of elements: assume additive atm 
         # the use of min with new_bacteria is nice here, to essentially "stop" further growth once Nmax is reached
+        #print(new_bacteria[i,"freq"])
+        #print(sum(new_bacteria[,"freq"]))
         new_bacteria[i,"freq"] = new_bacteria[i,"freq"] + # what was in the bacteria profile before + new ones 
            min( (Nmax - sum(new_bacteria[,"freq"])), # has to be less than the remaining space 
-            round(bacteria[i,"freq"] * (max(0,(1 - fitness_cost_all[i]))) * growth_rate * (1 - tot_bacteria/Nmax))) # growth
+            round(bacteria[i,"freq"] * (max(0,(1 - fitness_cost_all[i]))) * growth_rate * (1 - sum(new_bacteria[,"freq"])/Nmax))) # growth
         
-        
-        if(any(new_bacteria[,"freq"] < 0)){print(c(fitness_cost_all[i],"here",new_bacteria[i,"freq"] ,
+        #print(c(new_bacteria[i,"freq"]))
+        if(any(new_bacteria[,"freq"] < 0)){print(c(growth_rate, fitness_cost_all[i],"here",new_bacteria[i,"freq"],
                                                    round(bacteria[i,"freq"] * (max(0,(1 - fitness_cost_all[i]))) * growth_rate * (1 - tot_bacteria/Nmax)),
-                                                   Nmax - sum(new_bacteria[,"freq"])))}
+                                                   Nmax, sum(new_bacteria[,"freq"]),
+                                                 min( (Nmax - sum(new_bacteria[,"freq"])), # has to be less than the remaining space 
+                                                      round(bacteria[i,"freq"] * (max(0,(1 - fitness_cost_all[i]))) * growth_rate * (1 - sum(new_bacteria[,"freq"])/Nmax)))))}
         #print(c(sum(bacteria[,"freq"]),round(bacteria[i,"freq"] * (1 - fitness_cost_all[i]) * growth_rate * (1 - sum(bacteria[,"freq"])/Nmax))))
+        #print(c("s",sum(new_bacteria[,"freq"])))
       }
       
       #update main bacteria matrix

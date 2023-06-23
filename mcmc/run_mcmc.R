@@ -51,20 +51,21 @@ priors = define_priors(parameters_in)
 priors$density(parameters_in)
 priors$density(c(0.0001,0.0002,0.0002,0.02,0)) # doesn't work without names
 
-priors$sampler()
-priors$sampler(1)  # generates samples with names now (changed for n = 5 case)
-priors$sampler(10)  # generates samples with names now (changed for n = 5 case)
-
-noname_parameters_in <- unname(parameters_in)
-priors_nn = define_priors(noname_parameters_in)
-priors_nn$density(noname_parameters_in) # but priors built with names in 
+##### Exploration of why doesn't work for names.... led to creation of createPrior_gk
+# priors$sampler()
+# priors$sampler(1)  # generates samples with names now (changed for n = 5 case)
+# priors$sampler(10)  # generates samples with names now (changed for n = 5 case)
+# 
+# noname_parameters_in <- unname(parameters_in)
+# priors_nn = define_priors(noname_parameters_in)
+# priors_nn$density(noname_parameters_in) # but priors built with names in 
 
 ## Run the sampler #####################
 
 bayesianSetup = createBayesianSetup(run_sim_logPosterior, priors) #, names = names(parameters_in)) # I think names is for the settings? not the parameters? 
 
 #settings for the sampler, see documentation for more info
-settings = list(iterations = 100)
+settings = list(iterations = 1000)
 
 #run the mcmc
 out = runMCMC(bayesianSetup = bayesianSetup, settings = settings, sampler = "DE")
