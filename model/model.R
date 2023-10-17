@@ -109,7 +109,7 @@ piglet_mrsa_movement = function(tsteps, parameters_in, bacteria, difference_list
   
   # Final check on input parameters  - upper bound on fitness
   if(any(fitness_cost_all > 20) || growth_rate > 3){
-    print(c("Input error (fitness or growth)",fitness_cost_all))
+  #  print(c("Input error (fitness or growth)",fitness_cost_all))
     prev_predict = c()
     totl_predict = c()
   } else {
@@ -122,7 +122,6 @@ piglet_mrsa_movement = function(tsteps, parameters_in, bacteria, difference_list
 
       #copy over the bacteria matrix to store new bacteria numbers as we go along
       new_bacteria = bacteria
-      #new_bacteria[,"freq"] = 0
       
       #we can already do some calculations here
       #total bacteria in environment currently:
@@ -184,9 +183,7 @@ piglet_mrsa_movement = function(tsteps, parameters_in, bacteria, difference_list
         #it's not ideal, because sometimes the probabilities add up to more than 1, hence the max() function
         #something to look into...
         probas[Rfast::rowsums(differences[,1:10])==0] = max(0, 1 - sum(probas))
-        #print(c("probas",probas,"gain",gain_probas))
-       # if(any(new_bacteria[,"freq"] < 0)){print("here first")}
-        #print(c("s2",sum(new_bacteria[,"freq"])))
+
         #use multinomial sampling to decide what the bacteria from strain i now become,
         # then add that amount to the updated matrix of bacteria numbers
         # and remove them from original bacteria
@@ -194,34 +191,29 @@ piglet_mrsa_movement = function(tsteps, parameters_in, bacteria, difference_list
         # between "differences" (which only contains valid transitions for strain i) and
         # "new_bacteria" (which contains all 2048 possible strains)
         probas[is.na(probas)] = 0 # got na errors in rmultinom - fix with this for now
+        moving = 0 # set to zero 
         if(sum(probas) > 0){#print(parameters_in); break}
           moving <- rmultinom(1, bacteria[i, "freq"], probas)  # due to discrete time step, don't want to end up with negative bugs as more than Nmax at some point
           new_bacteria[differences[,"id"],"freq"] = new_bacteria[differences[,"id"],"freq"] + moving # add to new place
           new_bacteria[i,"freq"] = new_bacteria[i,"freq"] - sum(moving) # remove from original place
-        } #else {
-        #   new_bacteria[i,"freq"] = bacteria[i,"freq"]
-        # }
-        if(sum(new_bacteria[,"freq"]) > Nmax){print(c("big",sum(new_bacteria[,"freq"])))}
-        #if(any(new_bacteria[,"freq"] < 0)){print(c(fitness_cost_all[i],"herealready"))}
+        }
+
         
         #if some bacteria remain in their original strain i, they now grow
         #currently just a deterministic logistic calculation
         # Need to add in fitness cost of elements: assume additive atm 
         # the use of min with new_bacteria is nice here, to essentially "stop" further growth once Nmax is reached
-        #print(new_bacteria[i,"freq"])
-        #print(sum(new_bacteria[,"freq"]))
-        new_bacteria[i,"freq"] = new_bacteria[i,"freq"] + # what was in the bacteria profile before + new ones 
-           min( (Nmax - sum(new_bacteria[,"freq"])), # has to be less than the remaining space 
-            round(bacteria[i,"freq"] * (max(0,(1 - fitness_cost_all[i]))) * growth_rate * (1 - sum(new_bacteria[,"freq"])/Nmax))) # growth
+        # use new_bacteria in the calculation here for how many bugs (not bacteria) as some in previous profiles will have grown etc in this this time step
+        # but for this profile - want to use how many bugs were in there are the beginning minus those that moved and hence did not grow
+        new_bacteria[i,"freq"] = new_bacteria[i,"freq"] + # what was in this bacterial profile
+           min( (Nmax - sum(new_bacteria[,"freq"])), # has to be less than the remaining space
+                # Then additional new bacteria are from those present at the start of the time step minus those that move out of this profile
+                # not new_bacteria as this could have bugs with MGE from other profiles which have moved prior to looking at this profile
+            round( (bacteria[i,"freq"] - moving) * (max(0,(1 - fitness_cost_all[i]))) * growth_rate * (1 - sum(new_bacteria[,"freq"])/Nmax))) # growth
         
-        #print(c(new_bacteria[i,"freq"]))
-        if(any(new_bacteria[,"freq"] < 0)){print(c(growth_rate, fitness_cost_all[i],"here",new_bacteria[i,"freq"],
-                                                   round(bacteria[i,"freq"] * (max(0,(1 - fitness_cost_all[i]))) * growth_rate * (1 - tot_bacteria/Nmax)),
-                                                   Nmax, sum(new_bacteria[,"freq"]),
-                                                 min( (Nmax - sum(new_bacteria[,"freq"])), # has to be less than the remaining space 
-                                                      round(bacteria[i,"freq"] * (max(0,(1 - fitness_cost_all[i]))) * growth_rate * (1 - sum(new_bacteria[,"freq"])/Nmax)))))}
-        #print(c(sum(bacteria[,"freq"]),round(bacteria[i,"freq"] * (1 - fitness_cost_all[i]) * growth_rate * (1 - sum(bacteria[,"freq"])/Nmax))))
-        #print(c("s",sum(new_bacteria[,"freq"])))
+        
+        
+
       }
       
       #update main bacteria matrix

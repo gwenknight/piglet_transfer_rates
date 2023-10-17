@@ -6,24 +6,25 @@ define_priors = function(parameters_in){
   # Set up for all - if para not there then 0 
   if(length(parameters_in) < 32 && length(parameters_in) > 10){
     density = function(parameters_in){
-      prior.mu = dunif(as.numeric(parameters_in["mu2"]), min = 0, max = 1, log = TRUE) + 
-        dunif(as.numeric(parameters_in["mu5"]), min = 0, max = 1, log = TRUE) + 
-        dunif(as.numeric(parameters_in["mu6"]), min = 0, max = 1, log = TRUE) + 
-        dunif(as.numeric(parameters_in["mu7"]), min = 0, max = 1, log = TRUE) + 
-        dunif(as.numeric(parameters_in["mu8"]), min = 0, max = 1, log = TRUE) + 
-        dunif(as.numeric(parameters_in["mu10"]), min = 0, max = 1, log = TRUE)
-      prior.gamma = dunif(as.numeric(parameters_in["gamma2"]), min = 0, max = 1, log = TRUE) + 
-        dunif(as.numeric(parameters_in["gamma5"]), min = 0, max = 1, log = TRUE) + 
-        dunif(as.numeric(parameters_in["gamma6"]), min = 0, max = 1, log = TRUE) + 
-        dunif(as.numeric(parameters_in["gamma7"]), min = 0, max = 1, log = TRUE) + 
-        dunif(as.numeric(parameters_in["gamma8"]), min = 0, max = 1, log = TRUE) + 
-        dunif(as.numeric(parameters_in["gamma10"]), min = 0, max = 1, log = TRUE)
-      prior.f = dnorm(as.numeric(parameters_in["f2"]), mean = 0, sd = 0.1, log = TRUE) + 
-        dnorm(as.numeric(parameters_in["f5"]), mean = 0, sd = 0.1, log = TRUE) + 
-        dnorm(as.numeric(parameters_in["f6"]), mean = 0, sd = 0.1, log = TRUE) + 
-        dnorm(as.numeric(parameters_in["f7"]), mean = 0, sd = 0.1, log = TRUE) + 
-        dnorm(as.numeric(parameters_in["f8"]), mean = 0, sd = 0.1, log = TRUE) + 
-        dnorm(as.numeric(parameters_in["f10"]), mean = 0, sd = 0.1, log = TRUE) 
+      prior.mu = 
+        dlnorm(as.numeric(parameters_in["mu2"]), meanlog = log(1e-3), sdlog = 2, log = TRUE) + 
+        dlnorm(as.numeric(parameters_in["mu5"]), meanlog = log(1e-3), sdlog = 2, log = TRUE) + 
+        dlnorm(as.numeric(parameters_in["mu6"]), meanlog = log(1e-3), sdlog = 2, log = TRUE) + 
+        dlnorm(as.numeric(parameters_in["mu7"]), meanlog = log(1e-3), sdlog = 2, log = TRUE) + 
+        dlnorm(as.numeric(parameters_in["mu8"]), meanlog = log(1e-3), sdlog = 2, log = TRUE) + 
+        dlnorm(as.numeric(parameters_in["mu10"]), meanlog = log(1e-3), sdlog = 2, log = TRUE)
+      prior.gamma = dlnorm(as.numeric(parameters_in["gamma2"]), meanlog = log(1e-3), sdlog = 2, log = TRUE) + 
+        dlnorm(as.numeric(parameters_in["gamma5"]), meanlog = log(1e-3), sdlog = 2, log = TRUE) + 
+        dlnorm(as.numeric(parameters_in["gamma6"]), meanlog = log(1e-3), sdlog = 2, log = TRUE) + 
+        dlnorm(as.numeric(parameters_in["gamma7"]), meanlog = log(1e-3), sdlog = 2, log = TRUE) + 
+        dlnorm(as.numeric(parameters_in["gamma8"]), meanlog = log(1e-3), sdlog = 2, log = TRUE) + 
+        dlnorm(as.numeric(parameters_in["gamma10"]), meanlog = log(1e-3), sdlog = 2, log = TRUE) 
+      prior.f = dnorm(as.numeric(parameters_in["f2"]), mean = -0.1, sd = 0.1, log = TRUE) + 
+        dnorm(as.numeric(parameters_in["f5"]), mean = -0.1, sd = 0.1, log = TRUE) + 
+        dnorm(as.numeric(parameters_in["f6"]), mean = -0.1, sd = 0.1, log = TRUE) + 
+        dnorm(as.numeric(parameters_in["f7"]), mean = -0.1, sd = 0.1, log = TRUE) + 
+        dnorm(as.numeric(parameters_in["f8"]), mean = -0.1, sd = 0.1, log = TRUE) + 
+        dnorm(as.numeric(parameters_in["f10"]), mean = -0.1, sd = 0.1, log = TRUE) 
       prior.grow = dunif(as.numeric(parameters_in["grow"]), min = 0, max = 3, log = TRUE)
       prior.relfit = dnorm(as.numeric(parameters_in["rel_fit"]), mean = 0.8, sd = 0.1, log = TRUE) 
       return(prior.mu+prior.gamma+prior.f+prior.grow+prior.relfit)
@@ -31,24 +32,24 @@ define_priors = function(parameters_in){
     
     sampler = function(n=1){
       cc <- cbind(
-        runif(n, min = 0, max = 1), 
-        runif(n, min = 0, max = 1),
-        runif(n, min = 0, max = 1), 
-        runif(n, min = 0, max = 1), 
-        runif(n, min = 0, max = 1), 
-        runif(n, min = 0, max = 1),
-        runif(n, min = 0, max = 1), 
-        runif(n, min = 0, max = 1), 
-        runif(n, min = 0, max = 1), 
-        runif(n, min = 0, max = 1), 
-        runif(n, min = 0, max = 1), 
-        runif(n, min = 0, max = 1),
-        rnorm(n, mean = 0, sd = 0.1), 
-        rnorm(n, mean = 0, sd = 0.1), 
-        rnorm(n, mean = 0, sd = 0.1), 
-        rnorm(n, mean = 0, sd = 0.1), 
-        rnorm(n, mean = 0, sd = 0.1), 
-        rnorm(n, mean = 0, sd = 0.1), 
+        rlnorm(n, meanlog = log(1e-3), sdlog = 2), 
+        rlnorm(n, meanlog = log(1e-3), sdlog = 2),
+        rlnorm(n, meanlog = log(1e-3), sdlog = 2), 
+        rlnorm(n, meanlog = log(1e-3), sdlog = 2), 
+        rlnorm(n, meanlog = log(1e-3), sdlog = 2), 
+        rlnorm(n, meanlog = log(1e-3), sdlog = 2), 
+        rlnorm(n, meanlog = log(1e-3), sdlog = 2), 
+        rlnorm(n, meanlog = log(1e-3), sdlog = 2), 
+        rlnorm(n, meanlog = log(1e-3), sdlog = 2), 
+        rlnorm(n, meanlog = log(1e-3), sdlog = 2), 
+        rlnorm(n, meanlog = log(1e-3), sdlog = 2), 
+        rlnorm(n, meanlog = log(1e-3), sdlog = 2), 
+        rnorm(n, mean = -0.1, sd = 0.1), 
+        rnorm(n, mean = -0.1, sd = 0.1), 
+        rnorm(n, mean = -0.1, sd = 0.1), 
+        rnorm(n, mean = -0.1, sd = 0.1), 
+        rnorm(n, mean = -0.1, sd = 0.1), 
+        rnorm(n, mean = -0.1, sd = 0.1), 
         runif(n, min = 0, max = 3),
         rnorm(n, mean = 1, sd = 0.1) 
       )
@@ -62,9 +63,9 @@ define_priors = function(parameters_in){
   } else if(length(parameters_in) == 5){
     # If fixed input - same rates for all elements
     density = function(parameters_in){
-      prior.mu = dunif(as.numeric(parameters_in["mu"]), min = 0, max = 1, log = TRUE) 
-      prior.gamma = dunif(as.numeric(parameters_in["gamma"]), min = 0, max = 1, log = TRUE) 
-      prior.f = dnorm(as.numeric(parameters_in["f"]), mean = 0, sd = 0.1, log = TRUE) 
+      prior.mu = dlnorm(as.numeric(parameters_in["mu"]), meanlog = log(1e-3), sdlog = 2, log = TRUE)
+      prior.gamma = dlnorm(as.numeric(parameters_in["gamma"]), meanlog = log(1e-3), sdlog = 2, log = TRUE) 
+      prior.f = dnorm(as.numeric(parameters_in["f"]), mean = -0.1, sd = 0.1, log = TRUE) 
       prior.grow = dunif(as.numeric(parameters_in["grow"]), min = 0, max = 3, log = TRUE)
       prior.relfit = dnorm(as.numeric(parameters_in["rel_fit"]), mean = 0.8, sd = 0.1, log = TRUE) 
       return(prior.mu+prior.gamma+prior.f+prior.grow+prior.relfit)
@@ -72,9 +73,9 @@ define_priors = function(parameters_in){
     
     sampler = function(n=1){
       cc <- cbind(
-        runif(n, min = 0, max = 1), 
-        runif(n, min = 0, max = 1), 
-        rnorm(n, mean = 0, sd = 0.1), 
+        rlnorm(n, meanlog = log(1e-3), sdlog = 2), 
+        rlnorm(n, meanlog = log(1e-3), sdlog = 2), 
+        rnorm(n, mean = -0.1, sd = 0.1), 
         runif(n, min = 0, max = 3),
         rnorm(n, mean = 1, sd = 0.1) 
       )
@@ -88,8 +89,8 @@ define_priors = function(parameters_in){
   } else if(length(parameters_in) == 4){
     # If fixed input - same rates for all elements and no fitness cost 
     density = function(parameters_in){
-      prior.mu = dunif(as.numeric(parameters_in["mu"]), min = 0, max = 1, log = TRUE) 
-      prior.gamma = dunif(as.numeric(parameters_in["gamma"]), min = 0, max = 1, log = TRUE) 
+      prior.mu = dlnorm(as.numeric(parameters_in["mu"]), meanlog = log(1e-3), sdlog = 2, log = TRUE)
+      prior.gamma = dlnorm(as.numeric(parameters_in["gamma"]), meanlog = log(1e-3), sdlog = 2, log = TRUE) 
       prior.grow = dunif(as.numeric(parameters_in["grow"]), min = 0, max = 3, log = TRUE)
       prior.relfit = dnorm(as.numeric(parameters_in["rel_fit"]), mean = 0.8, sd = 0.1, log = TRUE) 
       return(prior.mu+prior.gamma+prior.grow+prior.relfit)
@@ -97,8 +98,8 @@ define_priors = function(parameters_in){
     
     sampler = function(n=1){
       cc <- cbind(
-        runif(n, min = 0, max = 1), 
-        runif(n, min = 0, max = 1), 
+        rlnorm(n, meanlog = log(1e-3), sdlog = 2), 
+        rlnorm(n, meanlog = log(1e-3), sdlog = 2), 
         runif(n, min = 0, max = 3),
         rnorm(n, mean = 1, sd = 0.1) 
       )
@@ -112,12 +113,12 @@ define_priors = function(parameters_in){
   } else if(length(parameters_in) == 8){
     # If fixed input - same rates for phage vs plasmids
     density = function(parameters_in){
-      prior.mu = dunif(as.numeric(parameters_in["mu_phage"]), min = 0, max = 1, log = TRUE) +
-        dunif(as.numeric(parameters_in["mu_plasmid"]), min = 0, max = 1, log = TRUE) 
-      prior.gamma = dunif(as.numeric(parameters_in["gamma_phage"]), min = 0, max = 1, log = TRUE) +
-        dunif(as.numeric(parameters_in["gamma_plasmid"]), min = 0, max = 1, log = TRUE) 
-      prior.f = dnorm(as.numeric(parameters_in["f_phage"]), mean = 0, sd = 0.1, log = TRUE) +
-        dnorm(as.numeric(parameters_in["f_plasmid"]), mean = 0, sd = 0.1, log = TRUE)
+      prior.mu = dlnorm(as.numeric(parameters_in["mu_phage"]), meanlog = log(1e-3), sdlog = 2, log = TRUE) + 
+        dlnorm(as.numeric(parameters_in["mu_plasmid"]), meanlog = log(1e-3), sdlog = 2, log = TRUE) 
+      prior.gamma = dlnorm(as.numeric(parameters_in["gamma_phage"]), meanlog = log(1e-3), sdlog = 2, log = TRUE) +
+        dlnorm(as.numeric(parameters_in["gamma_plasmid"]), meanlog = log(1e-3), sdlog = 2, log = TRUE) 
+      prior.f = dnorm(as.numeric(parameters_in["f_phage"]), mean = -0.1, sd = 0.1, log = TRUE) +
+        dnorm(as.numeric(parameters_in["f_plasmid"]), mean = -0.1, sd = 0.1, log = TRUE)
       prior.grow = dunif(as.numeric(parameters_in["grow"]), min = 0, max = 3, log = TRUE)
       prior.relfit = dnorm(as.numeric(parameters_in["rel_fit"]), mean = 0.8, sd = 0.1, log = TRUE)
       return(prior.mu+prior.gamma+prior.f+prior.grow+prior.relfit)
@@ -125,12 +126,12 @@ define_priors = function(parameters_in){
     
     sampler = function(n=1){
       cc <- cbind(
-        runif(n, min = 0, max = 1), 
-        runif(n, min = 0, max = 1), 
-        runif(n, min = 0, max = 1), 
-        runif(n, min = 0, max = 1), 
-        rnorm(n, mean = 0, sd = 0.1), 
-        rnorm(n, mean = 0, sd = 0.1),
+        rlnorm(n, meanlog = log(1e-3), sdlog = 2), 
+        rlnorm(n, meanlog = log(1e-3), sdlog = 2), 
+        rlnorm(n, meanlog = log(1e-3), sdlog = 2), 
+        rlnorm(n, meanlog = log(1e-3), sdlog = 2), 
+        rnorm(n, mean = -0.1, sd = 0.1), 
+        rnorm(n, mean = -0.1, sd = 0.1),
         runif(n, min = 0, max = 3),
         rnorm(n, mean = 1, sd = 0.1)
       )
@@ -144,14 +145,14 @@ define_priors = function(parameters_in){
   } else if(length(parameters_in) == 10){
     # If fixed input - same loss/gain rates different fitness
     density = function(parameters_in){
-      prior.mu = dunif(as.numeric(parameters_in[1]), min = 0, max = 1, log = TRUE) 
-      prior.gamma = dunif(as.numeric(parameters_in[2]), min = 0, max = 1, log = TRUE) 
-      prior.f = dnorm(as.numeric(parameters_in[3]), mean = 0, sd = 0.1, log = TRUE) + 
-        dnorm(as.numeric(parameters_in[4]), mean = 0, sd = 0.1, log = TRUE) + 
-        dnorm(as.numeric(parameters_in[5]), mean = 0, sd = 0.1, log = TRUE) + 
-        dnorm(as.numeric(parameters_in[6]), mean = 0, sd = 0.1, log = TRUE) + 
-        dnorm(as.numeric(parameters_in[7]), mean = 0, sd = 0.1, log = TRUE) + 
-        dnorm(as.numeric(parameters_in[8]), mean = 0, sd = 0.1, log = TRUE)
+      prior.mu = dlnorm(as.numeric(parameters_in[1]), meanlog = log(1e-3), sdlog = 2, log = TRUE)
+      prior.gamma = dlnorm(as.numeric(parameters_in[2]), meanlog = log(1e-3), sdlog = 2, log = TRUE) 
+      prior.f = dnorm(as.numeric(parameters_in[3]), mean = -0.1, sd = 0.1, log = TRUE) + 
+        dnorm(as.numeric(parameters_in[4]), mean = -0.1, sd = 0.1, log = TRUE) + 
+        dnorm(as.numeric(parameters_in[5]), mean = -0.1, sd = 0.1, log = TRUE) + 
+        dnorm(as.numeric(parameters_in[6]), mean = -0.1, sd = 0.1, log = TRUE) + 
+        dnorm(as.numeric(parameters_in[7]), mean = -0.1, sd = 0.1, log = TRUE) + 
+        dnorm(as.numeric(parameters_in[8]), mean = -0.1, sd = 0.1, log = TRUE)
       prior.grow = dunif(as.numeric(parameters_in[9]), min = 0, max = 3, log = TRUE)
       prior.relfit = dnorm(as.numeric(parameters_in[10]), mean = 0.8, sd = 0.1, log = TRUE)
       return(prior.mu+prior.gamma+prior.f+prior.grow+prior.relfit)
@@ -159,14 +160,14 @@ define_priors = function(parameters_in){
     
     sampler = function(n=1){
       cc <- cbind(
-        runif(n, min = 0, max = 1), 
-        runif(n, min = 0, max = 1), 
-        rnorm(n, mean = 0, sd = 0.1),
-        rnorm(n, mean = 0, sd = 0.1),
-        rnorm(n, mean = 0, sd = 0.1),
-        rnorm(n, mean = 0, sd = 0.1),
-        rnorm(n, mean = 0, sd = 0.1),
-        rnorm(n, mean = 0, sd = 0.1),
+        rlnorm(n, meanlog = log(1e-3), sdlog = 2), 
+        rlnorm(n, meanlog = log(1e-3), sdlog = 2), 
+        rnorm(n, mean = -0.1, sd = 0.1),
+        rnorm(n, mean = -0.1, sd = 0.1),
+        rnorm(n, mean = -0.1, sd = 0.1),
+        rnorm(n, mean = -0.1, sd = 0.1),
+        rnorm(n, mean = -0.1, sd = 0.1),
+        rnorm(n, mean = -0.1, sd = 0.1),
         runif(n, min = 0, max = 3),
         rnorm(n, mean = 1, sd = 0.1)
       )
