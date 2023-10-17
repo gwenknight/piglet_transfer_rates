@@ -159,7 +159,8 @@ piglet_mrsa_movement = function(tsteps, parameters_in, bacteria, difference_list
         #gain proba is either a density dependent proba (rate*n_recipient*n_donors/all_bacteria)
         #   or 0 (if MGE is already present in that strain)
         #print(c(rate_gain, bacteria[i,"freq"],"MGE",MGE_prevalence_all))
-        gain_probas = 1-exp(-rate_gain*bacteria[i,"freq"]*MGE_prevalence_all) # should n_recipient be removed here? i.e. bacteria[i,"freq"]? 
+
+        gain_probas = 1-exp(-rate_gain*bacteria[i,"freq"]*MGE_prevalence_all) 
         gain_probas = pmin(gain_probas, 1-bacteria_profile)
         
         #sum probas (since each MGE can either be gained or lost only)
