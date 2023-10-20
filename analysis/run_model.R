@@ -66,7 +66,7 @@ g1 <- ggplot(pigg_elements %>% filter(name %in% c("phi6","phi2","p1","p2","p3","
              aes(x=time, y = sum_prop, group = interaction(name, pig))) +
   geom_line(aes(col = name, linetype = factor(pig)),lwd = 1.5, alpha = 0.6) +
   geom_line(data =  model_outputp, 
-            aes(x = time, y = prev, group = interaction(parent_strain,name)),size = 1) +
+            aes(x = time, y = prev, group = interaction(parent_strain,name)),linewidth = 1) +
   geom_point(aes(col = name),size = 1.5) +
   facet_wrap(name~parent_strain, ncol = 2) +
   scale_color_discrete("MGE") + 
